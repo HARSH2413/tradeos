@@ -52,7 +52,7 @@ export default async function JournalPage({
     const { data: tradesData } = await supabase
       .from("trades")
       .select(`
-        id, symbol, net_pnl, result, created_at, trade_type,
+        id, symbol, net_pnl, created_at, trade_type,
         trade_rule_adherence ( rule_id, status ),
         trade_mistakes ( mistakes ( name ) )
       `)
@@ -60,7 +60,13 @@ export default async function JournalPage({
       .eq("date", selectedDateStr)
       .order("created_at", { ascending: true })
 
-    dayTrades = (tradesData as unknown[]) ?? []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dayTrades = (tradesData as any[])?.map((t: any) => ({
+      ...t,
+      result: Number(t.net_pnl) > 0 ? "WIN" : Number(t.net_pnl) < 0 ? "LOSS" : "BREAK EVEN",
+      trade_mistakes: t.trade_mistakes || [],
+      trade_rule_adherence: t.trade_rule_adherence || []
+    })) ?? []
     tradesCount = dayTrades.length
     netPnl = (dayTrades as any[]).reduce((sum, t) => sum + Number(t.net_pnl), 0)
   }
