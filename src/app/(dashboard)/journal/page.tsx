@@ -96,7 +96,7 @@ export default async function JournalPage({
   const strategies = strategiesResult.data || []
   const mistakes = mistakesResult.data || []
   const rules = rulesResult.data || []
-  const dailyAdherences = dailyAdherencesResult.data || []
+
 
   const isPastDate = selectedDateStr < format(new Date(), "yyyy-MM-dd")
   const isWeekendDay = isWeekend(selectedDate)
