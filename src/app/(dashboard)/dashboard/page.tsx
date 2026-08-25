@@ -19,6 +19,7 @@ import { computeStatus } from "@/lib/journal/computeStatus"
 import { format, subDays } from "date-fns"
 import { redirect } from "next/navigation"
 import { KpiCard } from "@/components/dashboard/kpi-card"
+import { DayOfWeekPerformance } from "@/components/dashboard/day-of-week-performance"
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -202,6 +203,11 @@ async function DashboardContent({ userId }: { userId: string }) {
           tradesCount={todayTrades.length}
           todayNetPnl={todayNetPnl}
         />
+      </section>
+
+      {/* Day of Week Performance */}
+      <section>
+        <DayOfWeekPerformance trades={rawTrades} />
       </section>
 
       {/* 5. Capital Ledger */}
