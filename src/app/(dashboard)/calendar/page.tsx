@@ -8,13 +8,14 @@ import {
   endOfWeek,
   format,
   isSameMonth,
+  isWeekend,
   parseISO,
   startOfMonth,
   startOfWeek,
   subDays,
   subMonths,
 } from "date-fns"
-import { Star, BookOpen, Bot } from "lucide-react"
+import { Star, BookOpen, Bot, Lock } from "lucide-react"
 
 import { MonthSelector } from "@/components/dashboard/month-selector"
 import { Badge } from "@/components/ui/badge"
@@ -125,7 +126,7 @@ export default async function CalendarPage({
     
     // Calculate end-of-day equity for tomorrow's beginning equity
     const dayTrades = tradesByDay.get(dateStr) ?? []
-    const dayPnl = dayTrades.reduce((sum, trade) => sum + trade.net_pnl, 0)
+    const dayPnl = dayTrades.reduce((sum, trade) => sum + Number(trade.net_pnl), 0)
     
     const dayDeposits = capitalTxs
       .filter((tx) => tx.date.startsWith(dateStr) && tx.transaction_type === "deposit")
@@ -140,13 +141,13 @@ export default async function CalendarPage({
 
   const selectedDay = params.day
   const selectedTrades = selectedDay ? tradesByDay.get(selectedDay) ?? [] : []
-  const selectedNetPnl = selectedTrades.reduce((sum, trade) => sum + trade.net_pnl, 0)
+  const selectedNetPnl = selectedTrades.reduce((sum, trade) => sum + Number(trade.net_pnl), 0)
   const selectedTradingDays = selectedDay ? (tradingDaysByDate.get(selectedDay) || []) : []
   
-  const monthNetPnl = trades.reduce((sum, trade) => sum + trade.net_pnl, 0)
-  const monthGrossPnl = trades.reduce((sum, trade) => sum + trade.gross_pnl, 0)
-  const monthBrokerage = trades.reduce((sum, trade) => sum + trade.brokerage, 0)
-  const monthTaxes = trades.reduce((sum, trade) => sum + trade.taxes, 0)
+  const monthNetPnl = trades.reduce((sum, trade) => sum + Number(trade.net_pnl), 0)
+  const monthGrossPnl = trades.reduce((sum, trade) => sum + Number(trade.gross_pnl), 0)
+  const monthBrokerage = trades.reduce((sum, trade) => sum + Number(trade.brokerage), 0)
+  const monthTaxes = trades.reduce((sum, trade) => sum + Number(trade.taxes), 0)
 
   const previousMonth = format(subMonths(selectedMonth, 1), "yyyy-MM")
   const nextMonth = format(addMonths(selectedMonth, 1), "yyyy-MM")
@@ -182,8 +183,9 @@ export default async function CalendarPage({
           <div className="grid grid-cols-7 gap-2">
             {days.map((day) => {
               const key = format(day, "yyyy-MM-dd")
+              const isWeekendDay = isWeekend(day)
               const dayTrades = tradesByDay.get(key) ?? []
-              const netPnl = dayTrades.reduce((sum, trade) => sum + trade.net_pnl, 0)
+              const netPnl = dayTrades.reduce((sum, trade) => sum + Number(trade.net_pnl), 0)
               
               // Daily Return = Adjusted P&L (which is netPnl) / Beginning Equity
               const dayBeginningEquity = beginningEquityByDate.get(key) ?? 10000
@@ -192,20 +194,23 @@ export default async function CalendarPage({
               return (
                 <Link
                   key={key}
-                  href={`/calendar?month=${monthKey}&day=${key}`}
+                  href={isWeekendDay ? "#" : `/calendar?month=${monthKey}&day=${key}`}
                   className={cn(
                     "relative min-h-28 rounded-lg border p-3 transition hover:border-emerald-400/40",
                     isSameMonth(day, selectedMonth) ? "border-white/10 bg-slate-950" : "border-white/5 bg-slate-950/40 opacity-50",
-                    dayTrades.length > 0 && netPnl > 0 && "border-emerald-400/20 bg-emerald-400/10",
-                    dayTrades.length > 0 && netPnl < 0 && "border-red-400/20 bg-red-400/10",
-                    dayTrades.length > 0 && netPnl === 0 && "border-amber-400/20 bg-amber-400/10",
-                    selectedDay === key && "ring-2 ring-emerald-300/40"
+                    isWeekendDay && "cursor-not-allowed opacity-40 bg-black/40 hover:border-white/10 hover:border-white/5",
+                    !isWeekendDay && dayTrades.length > 0 && netPnl > 0 && "border-emerald-400/20 bg-emerald-400/10",
+                    !isWeekendDay && dayTrades.length > 0 && netPnl < 0 && "border-red-400/20 bg-red-400/10",
+                    !isWeekendDay && dayTrades.length > 0 && netPnl === 0 && "border-amber-400/20 bg-amber-400/10",
+                    !isWeekendDay && selectedDay === key && "ring-2 ring-emerald-300/40"
                   )}
                 >
                   <div className="flex justify-between items-start">
                     <div className="text-sm font-semibold text-white">{format(day, "d")}</div>
                     
-                    {tradingDaysByDate.has(key) && (
+                    {isWeekendDay && <Lock className="size-3 text-slate-500" />}
+
+                    {!isWeekendDay && tradingDaysByDate.has(key) && (
                       <div className="flex gap-1">
                         {tradingDaysByDate.get(key)!.some(d => d.post_market_completed) && (
                           <Star className="size-3 text-yellow-500 fill-yellow-500" />

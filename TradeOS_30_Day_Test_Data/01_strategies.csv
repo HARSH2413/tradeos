@@ -1,5 +1,0 @@
-strategy_id,name,market,conditions,entry_rules,stop_loss_rules,target_rules,notes
-STRAT-001,Pullback Continuation,NIFTY F&O,Trend-aligned pullback into prior support/resistance,Wait for pullback + confirmation candle,Below/above confirmation structure,Minimum 1:2 RR,Primary setup
-STRAT-002,Breakout Retest,NIFTY F&O,Clean range breakout with retest,Enter only after successful retest,Inside failed breakout zone,Next major level / 1:2 RR,Clean consolidation breaks
-STRAT-003,VWAP Reclaim,BANKNIFTY F&O,Price reclaims VWAP with volume,Confirmation above VWAP,Below VWAP/structure,Previous high or 1:2 RR,Intraday momentum
-STRAT-004,Reversal at Extreme,BANKNIFTY F&O,Exhaustion at key daily level,Rejection + confirmation,Beyond extreme,Mid-range / opposite level,Lower frequency setup

@@ -57,6 +57,7 @@ function CollapsibleSection({
 
 export function DailyJournalPanel({
   day,
+  isLocked,
   trades,
   tradesCount,
   netPnl,
@@ -69,6 +70,7 @@ export function DailyJournalPanel({
   currentEquity,
 }: {
   day: AppTradingDay
+  isLocked: boolean
   trades: JournalTrade[]
   tradesCount: number
   netPnl: number
@@ -97,9 +99,11 @@ export function DailyJournalPanel({
 
       <CollapsibleSection
         title="1. Pre-Market Plan"
-        defaultOpen={!day.pre_market_completed}
+        defaultOpen={!day.pre_market_completed && !isLocked}
+        locked={isLocked}
+        disabledReason={isLocked ? "Journal locked for past dates." : undefined}
       >
-        <PreMarketForm day={day} />
+        <PreMarketForm day={day} isLocked={isLocked} />
       </CollapsibleSection>
 
       <div className="rounded-xl border border-white/10 bg-white/[0.035] p-6">
@@ -114,7 +118,11 @@ export function DailyJournalPanel({
             rules={rules}
             defaultDate={day.date}
             trigger={
-              <button className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-emerald-400 transition hover:bg-white/10">
+              <button 
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-emerald-400 transition hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLocked}
+                title={isLocked ? "Cannot log trades for locked past journals" : ""}
+              >
                 <Plus className="size-3.5" /> Log Trade
               </button>
             }
@@ -125,12 +133,13 @@ export function DailyJournalPanel({
 
       <CollapsibleSection
         title="3. Post-Market Review"
-        defaultOpen={status === "reviewing"}
-        disabled={tradesCount === 0}
-        disabledReason="Log at least one trade today to unlock the review section"
+        defaultOpen={(status === "reviewing" || (day.pre_market_completed && tradesCount === 0)) && !isLocked}
+        locked={isLocked}
+        disabledReason={isLocked ? "Journal locked for past dates." : undefined}
       >
         <PostMarketForm 
           day={day} 
+          isLocked={isLocked}
           trades={trades}
           rules={rules}
           mistakes={mistakes} 

@@ -11,9 +11,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
 export function PreMarketForm({ 
-  day
+  day,
+  isLocked
 }: { 
   day: AppTradingDay
+  isLocked?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(!day.pre_market_completed)
   const [isPending, startTransition] = useTransition()
@@ -81,16 +83,17 @@ export function PreMarketForm({
             {["bullish", "bearish", "neutral"].map((bias) => (
               <label 
                 key={bias} 
-                className="flex-1 cursor-pointer"
+                className={cn("flex-1", isLocked ? "cursor-not-allowed opacity-70" : "cursor-pointer")}
               >
                 <input 
                   type="radio" 
                   name="market_bias" 
                   value={bias} 
                   defaultChecked={day.market_bias === bias} 
+                  disabled={isLocked}
                   className="peer sr-only" 
                 />
-                <div className="rounded-lg border border-white/10 bg-slate-950 p-4 text-center text-sm font-medium text-slate-400 uppercase tracking-wider transition hover:bg-white/5 peer-checked:border-emerald-500/50 peer-checked:bg-emerald-500/10 peer-checked:text-emerald-400">
+                <div className="rounded-lg border border-white/10 bg-slate-950 p-4 text-center text-sm font-medium text-slate-400 uppercase tracking-wider transition peer-checked:border-emerald-500/50 peer-checked:bg-emerald-500/10 peer-checked:text-emerald-400">
                   {bias}
                 </div>
               </label>
@@ -104,19 +107,19 @@ export function PreMarketForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-xs text-slate-400">PDH (Previous Day High)</label>
-              <Input type="number" step="0.05" name="pdh" defaultValue={day.pdh ?? ""} placeholder="e.g. 24500.50" />
+              <Input type="number" step="0.05" name="pdh" defaultValue={day.pdh ?? ""} placeholder="e.g. 24500.50" disabled={isLocked} />
             </div>
             <div>
               <label className="mb-1.5 block text-xs text-slate-400">PDL (Previous Day Low)</label>
-              <Input type="number" step="0.05" name="pdl" defaultValue={day.pdl ?? ""} placeholder="e.g. 24200.00" />
+              <Input type="number" step="0.05" name="pdl" defaultValue={day.pdl ?? ""} placeholder="e.g. 24200.00" disabled={isLocked} />
             </div>
             <div>
               <label className="mb-1.5 block text-xs text-slate-400">Support</label>
-              <Input type="number" step="0.05" name="support" defaultValue={day.support ?? ""} placeholder="e.g. 24350" />
+              <Input type="number" step="0.05" name="support" defaultValue={day.support ?? ""} placeholder="e.g. 24350" disabled={isLocked} />
             </div>
             <div>
               <label className="mb-1.5 block text-xs text-slate-400">Resistance</label>
-              <Input type="number" step="0.05" name="resistance" defaultValue={day.resistance ?? ""} placeholder="e.g. 24600" />
+              <Input type="number" step="0.05" name="resistance" defaultValue={day.resistance ?? ""} placeholder="e.g. 24600" disabled={isLocked} />
             </div>
           </div>
         </div>
@@ -129,6 +132,7 @@ export function PreMarketForm({
             defaultValue={day.plan_setup || ""} 
             placeholder="NIFTY pullback to demand + confirmation..." 
             className="min-h-[80px]" 
+            disabled={isLocked}
           />
         </div>
 
@@ -140,15 +144,18 @@ export function PreMarketForm({
             defaultValue={day.plan_avoid || ""} 
             placeholder="No FOMO. No revenge trade. Max 2 trades." 
             className="min-h-[80px]" 
+            disabled={isLocked}
           />
         </div>
 
-        <div className="flex justify-end pt-4 border-t border-white/5">
-          <SubmitButton className="w-full sm:w-auto">
-            {isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-            {day.pre_market_completed ? "Update Pre-Market Plan" : "Save Plan"}
-          </SubmitButton>
-        </div>
+        {!isLocked && (
+          <div className="flex justify-end pt-4 border-t border-white/5">
+            <SubmitButton className="w-full sm:w-auto">
+              {isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+              {day.pre_market_completed ? "Update Pre-Market Plan" : "Save Plan"}
+            </SubmitButton>
+          </div>
+        )}
 
       </form>
     </div>

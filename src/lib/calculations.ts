@@ -72,18 +72,18 @@ export function calculateWinRate(trades: Pick<TradeLike, "net_pnl">[]) {
     return 0
   }
 
-  const winningTrades = trades.filter((trade) => trade.net_pnl > 0).length
+  const winningTrades = trades.filter((trade) => Number(trade.net_pnl) > 0).length
   return (winningTrades / trades.length) * 100
 }
 
 export function calculateProfitFactor(trades: TradeLike[]) {
   const grossProfit = trades
-    .filter((trade) => trade.net_pnl > 0)
-    .reduce((sum, trade) => sum + trade.net_pnl, 0)
+    .filter((trade) => Number(trade.net_pnl) > 0)
+    .reduce((sum, trade) => sum + Number(trade.net_pnl), 0)
   const grossLoss = Math.abs(
     trades
-      .filter((trade) => trade.net_pnl < 0)
-      .reduce((sum, trade) => sum + trade.net_pnl, 0)
+      .filter((trade) => Number(trade.net_pnl) < 0)
+      .reduce((sum, trade) => sum + Number(trade.net_pnl), 0)
   )
 
   if (grossLoss === 0) {
@@ -198,8 +198,8 @@ export function generateDailyPerformanceRecords(
     const dayDeposits = depositsByDay.get(date) ?? 0
     const dayWithdrawals = withdrawalsByDay.get(date) ?? 0
     
-    // If running equity is <= 0 (e.g. first day), deposits act as the beginning equity
-    const beginningEquity = runningEquity > 0 ? runningEquity : (dayDeposits - dayWithdrawals)
+    // Beginning equity should include today's net cash flows so that trades using newly deposited capital don't skew the return percentage.
+    const beginningEquity = (runningEquity > 0 ? runningEquity : 0) + dayDeposits - dayWithdrawals
     
     let returnPercent = 0
     if (beginningEquity > 0) {
@@ -237,16 +237,19 @@ export function calculatePerformanceReturn(
 }
 
 export function calculateMaxDrawdown(records: DailyPerformanceRecord[]): number {
-  let peak = 0
+  let peakTwr = 1.0
   let maxDrawdown = 0
+  let currentTwr = 1.0
 
   for (const record of records) {
-    if (record.ending_equity > peak) {
-      peak = record.ending_equity
+    currentTwr *= (1 + record.return_percent / 100)
+    
+    if (currentTwr > peakTwr) {
+      peakTwr = currentTwr
     }
     
-    if (peak > 0) {
-      const drawdown = ((record.ending_equity - peak) / peak) * 100
+    if (peakTwr > 0) {
+      const drawdown = ((currentTwr - peakTwr) / peakTwr) * 100
       if (drawdown < maxDrawdown) {
         maxDrawdown = drawdown
       }
@@ -257,21 +260,27 @@ export function calculateMaxDrawdown(records: DailyPerformanceRecord[]): number 
 }
 
 export function calculateCurrentDrawdown(records: DailyPerformanceRecord[]): { amount: number, percent: number } {
-  let peak = 0
+  let peakTwr = 1.0
+  let currentTwr = 1.0
   
   for (const record of records) {
-    if (record.ending_equity > peak) {
-      peak = record.ending_equity
+    currentTwr *= (1 + record.return_percent / 100)
+    if (currentTwr > peakTwr) {
+      peakTwr = currentTwr
     }
   }
 
-  if (records.length === 0 || peak === 0) {
+  if (records.length === 0 || peakTwr === 0) {
     return { amount: 0, percent: 0 }
   }
 
+  const percent = ((currentTwr - peakTwr) / peakTwr) * 100
   const currentEquity = records[records.length - 1].ending_equity
-  const amount = currentEquity - peak
-  const percent = (amount / peak) * 100
+  
+  // Calculate equivalent nominal drawdown amount isolated from cash flows
+  const multiplier = 1 + (percent / 100)
+  const theoreticalPeak = multiplier > 0 ? currentEquity / multiplier : 0
+  const amount = currentEquity - theoreticalPeak
 
   return { amount, percent }
 }

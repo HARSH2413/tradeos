@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { format, parseISO, addDays, subDays } from "date-fns"
+import { format, parseISO, addDays, subDays, isWeekend } from "date-fns"
 import { Plus } from "lucide-react"
 
 import { getSupabaseSession } from "@/lib/supabase/session"
@@ -99,6 +99,10 @@ export default async function JournalPage({
   const rules = rulesResult.data || []
   const dailyAdherences = dailyAdherencesResult.data || []
 
+  const isPastDate = selectedDateStr < format(new Date(), "yyyy-MM-dd")
+  const isWeekendDay = isWeekend(selectedDate)
+  const isLocked = isPastDate || isWeekendDay
+
   return (
     <div className="space-y-6">
       <DateHeader selectedDate={selectedDate} prevDateStr={prevDateStr} nextDateStr={nextDateStr} />
@@ -116,20 +120,35 @@ export default async function JournalPage({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
           </div>
-          <h2 className="mt-4 text-xl font-semibold text-white">No Journal Started</h2>
-          <p className="mt-2 text-sm text-slate-400 mb-6">
-            Start your trading day by initiating your pre-market plan.
-          </p>
-          <form action={async () => {
-            "use server"
-            await upsertTradingDay({ date: selectedDateStr, formType: "create" })
-          }}>
-            <SubmitButton>Start Journal for {format(selectedDate, "d MMM")}</SubmitButton>
-          </form>
+          {isLocked ? (
+            <>
+              <h2 className="mt-4 text-xl font-semibold text-white">Journal Locked</h2>
+              <p className="mt-2 text-sm text-slate-400 mb-6">
+                {isWeekendDay 
+                  ? "This date is a weekend (Market Holiday). Journal entries are locked."
+                  : "This date is in the past. You can only create new journals for today or the future."
+                }
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="mt-4 text-xl font-semibold text-white">No Journal Started</h2>
+              <p className="mt-2 text-sm text-slate-400 mb-6">
+                Start your trading day by initiating your pre-market plan.
+              </p>
+              <form action={async () => {
+                "use server"
+                await upsertTradingDay({ date: selectedDateStr, formType: "create" })
+              }}>
+                <SubmitButton>Start Journal for {format(selectedDate, "d MMM")}</SubmitButton>
+              </form>
+            </>
+          )}
         </div>
       ) : (
         <DailyJournalPanel 
           day={activeTradingDay} 
+          isLocked={isLocked}
           trades={dayTrades}
           tradesCount={tradesCount} 
           netPnl={netPnl} 

@@ -42,6 +42,7 @@ function calculateDailyRuleAdherence(
 
 export function PostMarketForm({ 
   day,
+  isLocked,
   trades,
   rules,
   mistakes,
@@ -49,6 +50,7 @@ export function PostMarketForm({
   netPnl
 }: { 
   day: AppTradingDay
+  isLocked?: boolean
   trades: JournalTrade[]
   rules: { id: string; title: string; category: string }[]
   mistakes: { id: string; name: string }[]
@@ -85,13 +87,19 @@ export function PostMarketForm({
           <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-6">TODAY</h3>
           
           <div className="flex flex-col items-center justify-center gap-2 mb-8">
-            <span className="text-xl font-medium text-white">{tradesCount} Trade{tradesCount !== 1 ? 's' : ''}</span>
-            <span className={cn(
-              "text-2xl font-semibold tabular-nums",
-              netPnl > 0 ? "text-emerald-400" : netPnl < 0 ? "text-red-400" : "text-slate-300"
-            )}>
-              {netPnl > 0 ? "+" : ""}{formattedPnl} Net P&L
-            </span>
+            {tradesCount === 0 ? (
+              <span className="text-xl font-medium text-amber-400">No Trade Day</span>
+            ) : (
+              <>
+                <span className="text-xl font-medium text-white">{tradesCount} Trade{tradesCount !== 1 ? 's' : ''}</span>
+                <span className={cn(
+                  "text-2xl font-semibold tabular-nums",
+                  netPnl > 0 ? "text-emerald-400" : netPnl < 0 ? "text-red-400" : "text-slate-300"
+                )}>
+                  {netPnl > 0 ? "+" : ""}{formattedPnl} Net P&L
+                </span>
+              </>
+            )}
           </div>
 
           <div className="flex flex-col gap-2 text-sm text-slate-300">
@@ -142,15 +150,16 @@ export function PostMarketForm({
         <h3 className="text-xs font-medium text-slate-500">Did I follow my plan?</h3>
         <div className="flex flex-col sm:flex-row gap-3">
           {["yes", "partially", "no"].map((val) => (
-            <label key={val} className="flex-1 cursor-pointer">
+            <label key={val} className={cn("flex-1", isLocked ? "cursor-not-allowed opacity-70" : "cursor-pointer")}>
               <input 
                 type="radio" 
                 name="plan_followed" 
                 value={val} 
                 defaultChecked={day.plan_followed === val} 
+                disabled={isLocked}
                 className="peer sr-only" 
               />
-              <div className="rounded-lg border border-white/10 bg-slate-950 p-4 text-center text-sm font-medium text-slate-400 uppercase tracking-wider transition hover:bg-white/5 peer-checked:border-emerald-500/50 peer-checked:bg-emerald-500/10 peer-checked:text-emerald-400">
+              <div className="rounded-lg border border-white/10 bg-slate-950 p-4 text-center text-sm font-medium text-slate-400 uppercase tracking-wider transition peer-checked:border-emerald-500/50 peer-checked:bg-emerald-500/10 peer-checked:text-emerald-400">
                 {val}
               </div>
             </label>
@@ -193,7 +202,8 @@ export function PostMarketForm({
         <select
           name="biggest_mistake"
           defaultValue={day.biggest_mistake || ""}
-          className="w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+          disabled={isLocked}
+          className="w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value="">None (No mistake)</option>
           {mistakes.map((mistake) => (
@@ -211,6 +221,7 @@ export function PostMarketForm({
           name="biggest_achievement" 
           defaultValue={day.biggest_achievement || ""} 
           placeholder="I waited for confirmation before entering..." 
+          disabled={isLocked}
         />
       </div>
 
@@ -221,6 +232,7 @@ export function PostMarketForm({
           name="biggest_learning" 
           defaultValue={day.biggest_learning || ""} 
           placeholder="Don't enter before the pullback confirms." 
+          disabled={isLocked}
         />
       </div>
 
@@ -231,15 +243,18 @@ export function PostMarketForm({
           name="tomorrow_focus" 
           defaultValue={day.tomorrow_focus || ""} 
           placeholder="Only take A+ setups." 
+          disabled={isLocked}
         />
       </div>
 
-      <div className="flex justify-end pt-4 border-t border-white/5">
-        <SubmitButton className="w-full sm:w-auto">
-          {isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-          Complete Review
-        </SubmitButton>
-      </div>
+      {!isLocked && (
+        <div className="flex justify-end pt-4 border-t border-white/5">
+          <SubmitButton className="w-full sm:w-auto">
+            {isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+            Complete Review
+          </SubmitButton>
+        </div>
+      )}
     </form>
   )
 }

@@ -1,6 +1,0 @@
-rule_id,category,title,description
-RULE-001,entry,Wait for confirmation,Do not enter before the setup confirms.
-RULE-002,risk_management,Use stop loss,Every trade must have a defined stop loss.
-RULE-003,risk_management,Max 2 trades,Do not exceed two trades in a trading day.
-RULE-004,psychology,No FOMO,Do not chase an extended candle or missed entry.
-RULE-005,exit,Respect target/exit plan,Do not exit randomly before the planned target unless the setup invalidates.

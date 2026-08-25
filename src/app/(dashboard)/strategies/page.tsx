@@ -51,7 +51,7 @@ export default async function StrategiesPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {strategies.map((strategy) => {
           const strategyTrades = trades.filter((trade) => trade.strategy_id === strategy.id)
-          const pnl = strategyTrades.reduce((sum, trade) => sum + trade.net_pnl, 0)
+          const pnl = strategyTrades.reduce((sum, trade) => sum + Number(trade.net_pnl), 0)
           return (
             <Card key={strategy.id} className="border-white/10 bg-white/[0.035]">
               <CardHeader className="flex-row items-start justify-between gap-3">

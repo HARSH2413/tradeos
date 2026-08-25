@@ -48,14 +48,14 @@ async function AnalyticsContent({ userId }: { userId: string }) {
 
   const wins = trades.filter((trade) => trade.net_pnl > 0)
   const losses = trades.filter((trade) => trade.net_pnl < 0)
-  const totalBrokerage = trades.reduce((sum, trade) => sum + trade.brokerage, 0)
-  const totalTaxes = trades.reduce((sum, trade) => sum + trade.taxes, 0)
+  const totalBrokerage = trades.reduce((sum, trade) => sum + Number(trade.brokerage), 0)
+  const totalTaxes = trades.reduce((sum, trade) => sum + Number(trade.taxes), 0)
   const totalCosts = totalBrokerage + totalTaxes
-  const totalTradingPnl = trades.reduce((sum, trade) => sum + trade.net_pnl, 0)
+  const totalTradingPnl = trades.reduce((sum, trade) => sum + Number(trade.net_pnl), 0)
 
   // Cash-flow Adjusted Daily Performance Engine
   const dailyRecords = generateDailyPerformanceRecords(
-    trades.map(t => ({ date: t.date, net_pnl: t.net_pnl })),
+    trades.map(t => ({ date: t.date, net_pnl: Number(t.net_pnl) })),
     capitalTxs.map(t => ({ date: t.date, transaction_type: t.transaction_type, amount: Number(t.amount) }))
   )
 
