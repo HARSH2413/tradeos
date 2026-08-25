@@ -3,9 +3,10 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { calculateProfitFactor, calculateWinRate, formatProfitFactor, generateDailyPerformanceRecords, calculatePerformanceReturn, calculateMaxDrawdown } from "@/lib/calculations"
+import { calculateProfitFactor, calculateWinRate, generateDailyPerformanceRecords, calculatePerformanceReturn, calculateMaxDrawdown } from "@/lib/calculations"
 import { type AppTrade, type AppCapitalTransaction } from "@/lib/dashboard-data"
-import { formatCurrency, formatPercentage } from "@/lib/formatters"
+import { formatCurrency, formatPercentage, formatProfitFactor } from "@/lib/formatters"
+import { KpiTooltip } from "@/components/dashboard/kpi-tooltip"
 import { getSupabaseSession } from "@/lib/supabase/session"
 
 export const metadata: Metadata = {
@@ -76,10 +77,10 @@ async function AnalyticsContent({ userId }: { userId: string }) {
       <section>
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-emerald-400">Account Performance</h2>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Metric title="Trading P&L" value={formatCurrency(totalTradingPnl)} tone={totalTradingPnl >= 0 ? "profit" : "loss"} />
-          <Metric title="TWR" value={formatPercentage(twr)} tone={twr >= 0 ? "profit" : "loss"} />
-          <Metric title="Max Drawdown" value={formatPercentage(maxDrawdown)} tone={maxDrawdown < 0 ? "loss" : "neutral"} />
-          <Metric title="Avg Daily Return" value={formatPercentage(avgDailyReturn)} tone={avgDailyReturn >= 0 ? "profit" : "loss"} />
+          <Metric title="Trading P&L" value={formatCurrency(totalTradingPnl)} tone={totalTradingPnl >= 0 ? "profit" : "loss"} info="Total profit/loss from all trades" />
+          <Metric title="TWR" value={formatPercentage(twr)} tone={twr >= 0 ? "profit" : "loss"} info="Time-Weighted Return adjusted for deposits & withdrawals" />
+          <Metric title="Max Drawdown" value={formatPercentage(maxDrawdown)} tone={maxDrawdown < 0 ? "loss" : "neutral"} info="Maximum peak-to-trough drop in equity" />
+          <Metric title="Avg Daily Return" value={formatPercentage(avgDailyReturn)} tone={avgDailyReturn >= 0 ? "profit" : "loss"} info="Average daily percentage return" />
         </div>
       </section>
 
@@ -87,10 +88,10 @@ async function AnalyticsContent({ userId }: { userId: string }) {
       <section>
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-300">Trading Statistics</h2>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Metric title="Total Trades" value={String(trades.length)} />
-          <Metric title="Win Rate" value={formatPercentage(calculateWinRate(trades))} />
-          <Metric title="Profit Factor" value={formatProfitFactor(calculateProfitFactor(trades))} tone={calculateProfitFactor(trades) >= 1 ? "profit" : "loss"} />
-          <Metric title="Total Costs" value={formatCurrency(totalCosts)} />
+          <Metric title="Total Trades" value={String(trades.length)} info="Total number of trades taken" />
+          <Metric title="Win Rate" value={formatPercentage(calculateWinRate(trades))} info="Percentage of trades that were profitable" />
+          <Metric title="Profit Factor" value={formatProfitFactor(calculateProfitFactor(trades))} tone={calculateProfitFactor(trades) >= 1 ? "profit" : "loss"} info="Gross Profit / Gross Loss (Ideal > 1.5)" />
+          <Metric title="Total Costs" value={formatCurrency(totalCosts)} info="Total brokerage and taxes paid" />
         </div>
       </section>
 
@@ -167,11 +168,14 @@ async function AnalyticsContent({ userId }: { userId: string }) {
 
 import { cn } from "@/lib/utils"
 
-function Metric({ title, value, compact = false, tone = "neutral" }: { title: string; value: string; compact?: boolean, tone?: "neutral" | "profit" | "loss" }) {
+function Metric({ title, value, compact = false, tone = "neutral", info }: { title: string; value: string; compact?: boolean, tone?: "neutral" | "profit" | "loss", info?: string }) {
   return (
     <Card className="border-white/10 bg-slate-950 shadow-none">
       <CardContent className={compact ? "p-3" : "p-5"}>
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</p>
+          {info && <KpiTooltip info={info} />}
+        </div>
         <p className={cn("mt-2 text-2xl font-bold tabular-nums", tone === "profit" ? "text-emerald-400" : tone === "loss" ? "text-rose-400" : "text-white")}>
           {value}
         </p>
