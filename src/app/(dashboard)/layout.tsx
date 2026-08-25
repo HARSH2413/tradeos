@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { Header } from "@/components/header"
 import { NavigationProgress } from "@/components/navigation-progress"
 import { Sidebar } from "@/components/sidebar"
-import { GlobalTradeButton } from "@/components/trades/global-trade-button"
+
 import { getSupabaseSession } from "@/lib/supabase/session"
 
 type DashboardProfile = {
@@ -38,7 +38,7 @@ export default async function DashboardLayout({
       <NavigationProgress />
       <Sidebar user={sidebarUser} />
       <div className="min-w-0 flex-1">
-        <Header user={sidebarUser} action={<GlobalTradeButton />} />
+        <Header user={sidebarUser} />
         <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
