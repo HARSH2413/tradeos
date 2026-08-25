@@ -238,7 +238,7 @@ export function PostMarketForm({
 
       {/* 6. Tomorrow's focus */}
       <div className="space-y-4">
-        <h3 className="text-xs font-medium text-slate-500">Tomorrow's focus</h3>
+        <h3 className="text-xs font-medium text-slate-500">Tomorrow&apos;s focus</h3>
         <Input 
           name="tomorrow_focus" 
           defaultValue={day.tomorrow_focus || ""} 

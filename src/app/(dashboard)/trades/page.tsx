@@ -107,7 +107,8 @@ async function TradesContent({ userId, page }: { userId: string; page: number })
   }
 
   const rulesData = rulesResult.data as RuleRow[] | null
-  const statsData = statsResult.data as Record<string, number> | null
+  const rawStats = statsResult.data as unknown
+  const statsData = (Array.isArray(rawStats) ? rawStats[0] : rawStats) as Record<string, number> | null
   const tradesData = tradesResult.data as unknown as TradeData[] | null
   const totalCount = tradesResult.count ?? 0
 

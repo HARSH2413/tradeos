@@ -12,7 +12,7 @@ export async function GET() {
   let fixedCount = 0
   const fixes = []
 
-  for (const trade of trades) {
+  for (const trade of trades as Record<string, string|number>[]) {
     const entryPrice = Number(trade.entry_price)
     const exitPrice = Number(trade.exit_price)
     const quantity = Number(trade.quantity)

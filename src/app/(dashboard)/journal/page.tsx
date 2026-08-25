@@ -2,7 +2,7 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { format, parseISO, addDays, subDays, isWeekend } from "date-fns"
-import { Plus } from "lucide-react"
+
 
 import { getSupabaseSession } from "@/lib/supabase/session"
 import { getEquityAtDate } from "@/lib/finance/equity"
@@ -10,7 +10,7 @@ import { upsertTradingDay } from "./actions"
 import { SubmitButton } from "@/components/submit-button"
 import { DailyJournalPanel } from "@/components/journal/daily-journal-panel"
 import type { AppTradingDay } from "@/lib/dashboard-data"
-import { cn } from "@/lib/utils"
+
 
 export const metadata: Metadata = {
   title: "Trading Journal | Dashboard",
@@ -60,13 +60,13 @@ export default async function JournalPage({
       .eq("date", selectedDateStr)
       .order("created_at", { ascending: true })
 
-    dayTrades = (tradesData as any[]) ?? []
+    dayTrades = (tradesData as unknown[]) ?? []
     tradesCount = dayTrades.length
-    netPnl = dayTrades.reduce((sum, t) => sum + Number(t.net_pnl), 0)
+    netPnl = (dayTrades as any[]).reduce((sum, t) => sum + Number(t.net_pnl), 0)
   }
 
   // Fetch TradeForm requirements
-  const [settingsResult, strategiesResult, mistakesResult, rulesResult, dailyAdherencesResult, currentEquity] = await Promise.all([
+  const [settingsResult, strategiesResult, mistakesResult, rulesResult, currentEquity] = await Promise.all([
     supabase
       .from("settings")
       .select("default_brokerage,default_tax")
@@ -79,7 +79,6 @@ export default async function JournalPage({
       .order("name", { ascending: true }),
     supabase.from("mistakes").select("id,name").order("name", { ascending: true }),
     supabase.from("rules").select("id,title,category").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("daily_rule_adherence").select("rule_id, checked").eq("user_id", user.id).eq("date", selectedDateStr),
     getEquityAtDate(supabase, user.id, selectedDateStr)
   ])
 
@@ -157,7 +156,6 @@ export default async function JournalPage({
           rules={rules as { id: string; title: string; category: string }[]}
           settings={settings as { default_brokerage: number; default_tax: number }}
           currentEquity={currentEquity}
-          dailyAdherences={dailyAdherences as { rule_id: string; checked: boolean }[]}
           aiSummary={aiSummary as { summary: string, strength: string, weakness: string } | null}
         />
       )}

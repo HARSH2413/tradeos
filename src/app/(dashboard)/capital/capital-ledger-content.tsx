@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 import { addCapitalTransaction, deleteCapitalTransaction } from "@/app/(dashboard)/dashboard/capital-actions"
@@ -28,6 +28,7 @@ export function CapitalLedgerContent({ equity, netContributions, transactions }:
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [, startTransition] = useTransition()
   const [error, setError] = useState("")
+  const [txType, setTxType] = useState<"deposit" | "withdrawal">("deposit")
 
   async function handleAddTransaction(formData: FormData) {
     setError("")
@@ -105,16 +106,26 @@ export function CapitalLedgerContent({ equity, netContributions, transactions }:
                 )}
                 
                 <div className="space-y-2">
-                  <Label htmlFor="transaction_type">Type</Label>
-                  <Select name="transaction_type" defaultValue="deposit">
-                    <SelectTrigger id="transaction_type" className="bg-slate-950 border-white/10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-white/10">
-                      <SelectItem value="deposit">Deposit</SelectItem>
-                      <SelectItem value="withdrawal">Withdrawal</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Transaction Type</Label>
+                  <input type="hidden" name="transaction_type" value={txType} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      type="button" 
+                      variant={txType === "deposit" ? "default" : "outline"}
+                      className={txType === "deposit" ? "bg-emerald-600 hover:bg-emerald-500 text-white" : "bg-transparent border-white/10 text-slate-400 hover:text-white"}
+                      onClick={() => setTxType("deposit")}
+                    >
+                      <ArrowUpCircle className="mr-2 h-4 w-4" /> Deposit
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant={txType === "withdrawal" ? "default" : "outline"}
+                      className={txType === "withdrawal" ? "bg-rose-600 hover:bg-rose-500 text-white" : "bg-transparent border-white/10 text-slate-400 hover:text-white"}
+                      onClick={() => setTxType("withdrawal")}
+                    >
+                      <ArrowDownCircle className="mr-2 h-4 w-4" /> Withdrawal
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="space-y-2">

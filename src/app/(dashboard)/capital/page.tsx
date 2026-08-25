@@ -18,7 +18,8 @@ export default async function CapitalPage() {
   const { data: stats } = await supabase.rpc("get_dashboard_stats", { p_user_id: user.id })
   
   // Financial model terms — see src/lib/financial-model.ts
-  const statsData = stats as Record<string, any> | null
+  const rawStats = stats as unknown
+  const statsData = (Array.isArray(rawStats) ? rawStats[0] : rawStats) as Record<string, unknown> | null
   const equity = statsData?.equity || 0
   const netContributions = statsData?.net_contributions || 0
 
@@ -39,7 +40,7 @@ export default async function CapitalPage() {
       <CapitalLedgerContent 
         equity={equity}
         netContributions={netContributions} 
-        transactions={(capitalTxs as any as import("@/lib/dashboard-data").AppCapitalTransaction[]) || []} 
+        transactions={(capitalTxs as unknown as import("@/lib/dashboard-data").AppCapitalTransaction[]) || []} 
       />
     </div>
   )

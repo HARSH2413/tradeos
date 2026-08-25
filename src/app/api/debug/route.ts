@@ -16,7 +16,7 @@ export async function GET() {
   
   const mismatches = []
 
-  for (const t of trades) {
+  for (const t of trades as Record<string, string|number>[]) {
     const gross = Number(t.gross_pnl)
     const net = Number(t.net_pnl)
     const brok = Number(t.brokerage)

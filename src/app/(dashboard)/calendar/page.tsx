@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { calculateDailyPnlPercent, getTradeResult } from "@/lib/calculations"
 import { getEquityAtDate } from "@/lib/finance/equity"
-import { type AppTrade, type AppSettings, type AppTradingDay, type AppCapitalTransaction } from "@/lib/dashboard-data"
+import { type AppTrade, type AppTradingDay, type AppCapitalTransaction } from "@/lib/dashboard-data"
 import { formatCurrency, formatCompactCurrency, formatPercentage } from "@/lib/formatters"
 import { getSupabaseSession } from "@/lib/supabase/session"
 import { cn } from "@/lib/utils"
@@ -49,19 +49,12 @@ export default async function CalendarPage({
   const monthStart = startOfMonth(selectedMonth)
   const monthEnd = endOfMonth(selectedMonth)
   const [
-    { data: settingsData }, 
     { data: tradesData }, 
     { data: daysData }, 
     { data: allDatesRaw }, 
-    { data: statsData }, 
     startEquityData, 
     { data: capitalData }
   ] = await Promise.all([
-    supabase
-      .from("settings")
-      .select("default_brokerage,default_tax")
-      .eq("user_id", user.id)
-      .maybeSingle(),
     supabase
       .from("trades")
       .select("*,strategies(name)")
@@ -80,8 +73,6 @@ export default async function CalendarPage({
       .select("date")
       .eq("user_id", user.id)
       .order("date", { ascending: false }),
-    // Fetch equity for accurate daily P&L % — see financial-model.ts
-    supabase.rpc("get_dashboard_stats", { p_user_id: user.id }),
     // Fetch start-of-month equity for cash-flow adjusted daily returns
     getEquityAtDate(supabase, user.id, format(subDays(new Date(monthStart), 1), "yyyy-MM-dd")),
     // Fetch this month's capital transactions
@@ -94,7 +85,6 @@ export default async function CalendarPage({
       .order("date", { ascending: true }),
   ])
 
-  const settings = settingsData as AppSettings | null
   const trades = (tradesData ?? []) as AppTrade[]
   const tradingDaysList = (daysData ?? []) as AppTradingDay[]
   const monthStartEquity = Number(startEquityData ?? 0)

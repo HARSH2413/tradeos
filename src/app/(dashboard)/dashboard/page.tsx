@@ -8,22 +8,17 @@ import {
   Percent,
   Wallet,
 } from "lucide-react"
-import { format, subDays } from "date-fns"
-import { redirect } from "next/navigation"
-
-import { KpiCard } from "@/components/dashboard/kpi-card"
-import type { EquityPoint } from "@/components/dashboard/equity-curve"
-import type { MonthlyPnlPoint } from "@/components/dashboard/monthly-pnl-chart"
-import type { AppCapitalTransaction } from "@/lib/dashboard-data"
-import { formatCurrency, formatPercentage } from "@/lib/formatters"
 import { getSupabaseSession } from "@/lib/supabase/session"
 import { getEquityAtDate } from "@/lib/finance/equity"
-import { cn } from "@/lib/utils"
-import { generateDailyPerformanceRecords, calculateCurrentDrawdown, calculatePerformanceReturn } from "@/lib/calculations"
+import { generateDailyPerformanceRecords, calculateCurrentDrawdown } from "@/lib/calculations"
+import { formatCurrency, formatPercentage } from "@/lib/formatters"
+import type { AppCapitalTransaction } from "@/lib/dashboard-data"
 import { TodayTradingStatus } from "@/components/dashboard/today-trading-status"
 import { TodayJournalStatus } from "@/components/dashboard/today-journal-status"
 import { computeStatus } from "@/lib/journal/computeStatus"
-import type { AppTradingDay } from "@/lib/dashboard-data"
+import { format, subDays } from "date-fns"
+import { redirect } from "next/navigation"
+import { KpiCard } from "@/components/dashboard/kpi-card"
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -59,11 +54,6 @@ type DashboardStats = {
   overall_return: number;
 }
 
-type EquityRow = {
-  trade_date: string;
-  daily_net_pnl: number;
-  daily_gross_pnl: number;
-}
 
 export default async function DashboardPage() {
   const { user } = await getSupabaseSession()
@@ -92,30 +82,24 @@ export default async function DashboardPage() {
   )
 }
 
-function TodayStatusSkeleton() {
-  return (
-    <div className="h-32 rounded-xl border border-white/10 bg-white/[0.035] animate-pulse" />
-  )
-}
 
 async function DashboardContent({ userId }: { userId: string }) {
   const { supabase } = await getSupabaseSession()
 
-  const [statsResult, equityResult, rawTradesResult, capitalTxResult, dailyRulesResult] = await Promise.all([
+  const [statsResult, rawTradesResult, capitalTxResult, dailyRulesResult] = await Promise.all([
     supabase.rpc("get_dashboard_stats", { p_user_id: userId }),
-    supabase.rpc("get_equity_curve", { p_user_id: userId }),
     supabase.from("trades").select("date, net_pnl").eq("user_id", userId),
     supabase.from("capital_transactions").select("*").eq("user_id", userId).order("date", { ascending: false }).order("created_at", { ascending: false }),
     supabase.from("trading_days").select("pre_market_completed, post_market_completed").eq("user_id", userId).eq("date", format(new Date(), "yyyy-MM-dd")).maybeSingle()
   ])
 
-  const statsData = statsResult.data as DashboardStats | null
+  const rawStats = statsResult.data as any
+  const statsData = (Array.isArray(rawStats) ? rawStats[0] : rawStats) as DashboardStats | null
   const capitalTxs = (capitalTxResult.data ?? []) as AppCapitalTransaction[]
   
   // Financial model terms — see src/lib/financial-model.ts
   const netContributions = Number(statsData?.net_contributions ?? 0)
   const equity = Number(statsData?.equity ?? 0)
-  const overallReturn = Number(statsData?.overall_return ?? 0) * 100
   
   // To correctly calculate Today's Return (cash-flow adjusted), we need the Beginning Equity of today.
   // Beginning Equity = Yesterday's Ending Equity (which correctly ignores today's deposits/withdrawals).
@@ -131,7 +115,6 @@ async function DashboardContent({ userId }: { userId: string }) {
   const rawTrades = (rawTradesResult.data ?? []) as { date: string; net_pnl: number }[]
   
   const dailyRecords = generateDailyPerformanceRecords(rawTrades, capitalTxs)
-  const performanceReturn = calculatePerformanceReturn(rawTrades, capitalTxs)
   const equityData = dailyRecords.map(r => ({ date: r.date, equity: r.ending_equity }))
 
   // Win / Loss Today

@@ -64,7 +64,7 @@ export function DailyJournalPanel({
   mistakes,
   strategies,
   rules,
-  dailyAdherences,
+
   aiSummary,
   settings,
   currentEquity,
@@ -77,7 +77,6 @@ export function DailyJournalPanel({
   mistakes: { id: string; name: string }[]
   strategies: { id: string; name: string }[]
   rules: { id: string; title: string; category: string }[]
-  dailyAdherences: { rule_id: string; checked: boolean }[]
   aiSummary: { summary: string, strength: string, weakness: string } | null
   settings: { default_brokerage: number; default_tax: number }
   currentEquity: number

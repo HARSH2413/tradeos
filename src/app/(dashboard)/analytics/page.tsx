@@ -2,7 +2,7 @@ import { Suspense } from "react"
 import { Metadata } from "next"
 import { redirect } from "next/navigation"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { calculateProfitFactor, calculateWinRate, formatProfitFactor, generateDailyPerformanceRecords, calculatePerformanceReturn, calculateMaxDrawdown } from "@/lib/calculations"
 import { type AppTrade, type AppCapitalTransaction } from "@/lib/dashboard-data"
 import { formatCurrency, formatPercentage } from "@/lib/formatters"

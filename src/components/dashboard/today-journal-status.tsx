@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { ArrowRight, CheckCircle2 } from "lucide-react"
-import { cn } from "@/lib/utils"
+
 import { formatCurrency } from "@/lib/formatters"
 import type { JournalStatus } from "@/lib/journal/computeStatus"
 

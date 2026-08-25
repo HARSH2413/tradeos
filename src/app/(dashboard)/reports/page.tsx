@@ -3,8 +3,8 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { KpiCard } from "@/components/dashboard/kpi-card"
-import { calculateDailyPnlPercent, calculateWinRate, generateDailyPerformanceRecords } from "@/lib/calculations"
+
+import { calculateWinRate, generateDailyPerformanceRecords } from "@/lib/calculations"
 import { getEquityAtDate } from "@/lib/finance/equity"
 import { type AppTrade } from "@/lib/dashboard-data"
 import { formatCurrency, formatPercentage } from "@/lib/formatters"
