@@ -3,9 +3,9 @@ import { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { calculateProfitFactor, calculateWinRate, generateDailyPerformanceRecords, calculatePerformanceReturn, calculateMaxDrawdown } from "@/lib/calculations"
+import { calculateProfitFactor, calculateWinRate, formatProfitFactor, generateDailyPerformanceRecords, calculatePerformanceReturn, calculateMaxDrawdown } from "@/lib/calculations"
 import { type AppTrade, type AppCapitalTransaction } from "@/lib/dashboard-data"
-import { formatCurrency, formatPercentage, formatProfitFactor } from "@/lib/formatters"
+import { formatCurrency, formatPercentage } from "@/lib/formatters"
 import { KpiTooltip } from "@/components/dashboard/kpi-tooltip"
 import { getSupabaseSession } from "@/lib/supabase/session"
 
