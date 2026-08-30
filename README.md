@@ -4,6 +4,8 @@
 
 [Demo](#) | [Live App](#) | [GitHub](https://github.com/HARSH2413/Tradeos)
 
+![TradeOS Dashboard](docs/dashboard.png)
+
 TradeOS is a full-stack trading journal and performance analysis platform designed to help traders record, review and understand their trading behavior.
 
 ## Why I built this
@@ -119,7 +121,23 @@ Deploy to [Vercel](https://vercel.com/) for the best Next.js experience:
 
 ## Screenshots
 
-*(Add your screenshots here)*
+### Dashboard
+![Dashboard](docs/dashboard.png)
+
+### Trade Journal
+![Trade Journal](docs/trade_journal.png)
+
+### Daily Journal
+![Daily Journal](docs/daily_journal.png)
+
+### Analytics
+![Analytics](docs/analytics.png)
+
+### Calendar
+![Calendar](docs/calendar.png)
+
+### AI Analyst
+![AI Analyst](docs/ai_analyst.png)
 
 ## Roadmap
 
