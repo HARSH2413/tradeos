@@ -118,7 +118,7 @@ function LoginContent() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_34%),linear-gradient(135deg,_#030712_0%,_#0a0f1f_48%,_#020617_100%)] px-4 py-8 text-foreground">
       <TradingBackground />
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center justify-center">
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center justify-center">
         <div className="grid w-full items-center gap-8 lg:grid-cols-[1fr_420px]">
           <section className="max-w-2xl">
             <div className="mb-8 flex items-center gap-3">
