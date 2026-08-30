@@ -1,6 +1,16 @@
-# TradeOS — Personal Trading Operating System
+# TradeOS
 
-A dark, focused trading journal and performance tracker built for Indian F&O traders. Record trades, monitor account growth, review mistakes, enforce trading rules, and get AI-powered analysis — all in one workspace.
+### Personal Trading Operating System for Indian F&O Traders
+
+[Demo](#) | [Live App](#) | [GitHub](https://github.com/HARSH2413/Tradeos)
+
+TradeOS is a full-stack trading journal and performance analysis platform designed to help traders record, review and understand their trading behavior.
+
+## Why I built this
+
+Trading is as much a psychological discipline as it is a financial one. I built TradeOS because existing journals were either too complex, lacked integrated rule-tracking, or didn't provide actionable feedback. 
+
+TradeOS acts as a personal accountability partner—forcing you to stick to your rules, review your mistakes, and use AI to objectively analyze your progress week over week without emotional bias.
 
 ## Features
 
@@ -106,6 +116,17 @@ Deploy to [Vercel](https://vercel.com/) for the best Next.js experience:
 2. Import the project in Vercel
 3. Add your environment variables in the Vercel dashboard
 4. Deploy
+
+## Screenshots
+
+*(Add your screenshots here)*
+
+## Roadmap
+
+- [ ] Mobile App / PWA Support
+- [ ] Integration with Indian Brokers (Zerodha, Upstox) API for auto-sync
+- [ ] Advanced AI charting analysis
+- [ ] Options Greek tracking
 
 ## License
 
