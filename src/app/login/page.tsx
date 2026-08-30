@@ -133,6 +133,11 @@ function LoginContent() {
             <p className="mt-5 max-w-xl text-base leading-7 text-slate-300">
               Record trades, monitor account growth, review mistakes, and keep your rules in one dark, focused workspace.
             </p>
+            <div className="mt-8 max-w-xl rounded-md border border-amber-500/20 bg-amber-500/10 p-4">
+              <p className="text-sm leading-relaxed text-amber-200">
+                <strong>Disclaimer:</strong> TradeOS is a personal trading journaling and analytics tool. It does not provide financial advice or guarantee trading performance.
+              </p>
+            </div>
           </section>
 
           <Card className="border-white/10 bg-slate-950/80 shadow-2xl shadow-emerald-950/20 backdrop-blur">

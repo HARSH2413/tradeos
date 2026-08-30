@@ -8,6 +8,8 @@
 
 TradeOS is a full-stack trading journal and performance analysis platform designed to help traders record, review and understand their trading behavior.
 
+> **Disclaimer:** TradeOS is a personal trading journaling and analytics tool. It does not provide financial advice or guarantee trading performance.
+
 ## Why I built this
 
 Trading is as much a psychological discipline as it is a financial one. I built TradeOS because existing journals were either too complex, lacked integrated rule-tracking, or didn't provide actionable feedback. 
