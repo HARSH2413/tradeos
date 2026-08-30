@@ -425,8 +425,8 @@ DECLARE
   v_stats JSON;
   v_net_funding NUMERIC := 0;
 BEGIN
-  -- Security check: ensure caller can only request their own stats
-  IF auth.uid() IS NOT NULL AND auth.uid() != p_user_id THEN
+  -- Security check: ensure caller is authenticated and can only request their own stats
+  IF auth.uid() IS NULL OR auth.uid() != p_user_id THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -484,8 +484,8 @@ RETURNS TABLE (
   daily_gross_pnl NUMERIC
 ) AS $$
 BEGIN
-  -- Security check: ensure caller can only request their own equity curve
-  IF auth.uid() IS NOT NULL AND auth.uid() != p_user_id THEN
+  -- Security check: ensure caller is authenticated and can only request their own equity curve
+  IF auth.uid() IS NULL OR auth.uid() != p_user_id THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -515,8 +515,8 @@ DECLARE
   v_mistake_id UUID;
   v_rule JSONB;
 BEGIN
-  -- Security check: ensure caller is inserting for their own user_id
-  IF auth.uid() IS NOT NULL AND auth.uid() != (p_trade_data->>'user_id')::UUID THEN
+  -- Security check: ensure caller is authenticated and inserting for their own user_id
+  IF auth.uid() IS NULL OR auth.uid() != (p_trade_data->>'user_id')::UUID THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -582,9 +582,9 @@ DECLARE
   v_rule JSONB;
   v_owner UUID;
 BEGIN
-  -- Security check: ensure caller owns the trade being updated
+  -- Security check: ensure caller is authenticated and owns the trade being updated
   SELECT user_id INTO v_owner FROM public.trades WHERE id = p_trade_id;
-  IF auth.uid() IS NOT NULL AND auth.uid() != v_owner THEN
+  IF auth.uid() IS NULL OR auth.uid() != v_owner THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -782,8 +782,8 @@ DECLARE
   v_net_funding NUMERIC := 0;
   v_accumulated_pnl NUMERIC := 0;
 BEGIN
-  -- Security check: ensure caller can only request their own capital
-  IF auth.uid() IS NOT NULL AND auth.uid() != p_user_id THEN
+  -- Security check: ensure caller is authenticated and can only request their own capital
+  IF auth.uid() IS NULL OR auth.uid() != p_user_id THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
