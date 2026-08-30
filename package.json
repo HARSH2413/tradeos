@@ -1,6 +1,7 @@
 {
   "name": "tradeos",
   "version": "0.1.0",
+  "description": "AI-powered trading operating system for Indian F&O traders — journaling, analytics, capital tracking, strategies, rules, and AI performance analysis.",
   "private": true,
   "scripts": {
     "dev": "next dev",
