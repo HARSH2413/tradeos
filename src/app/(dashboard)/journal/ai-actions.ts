@@ -1,7 +1,34 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 "use server"
 
 import { getSupabaseSession } from "@/lib/supabase/session"
+import type { Database } from "@/lib/supabase/types"
+
+type TradingDayRow = Database["public"]["Tables"]["trading_days"]["Row"]
+
+type TradingDayWithRelations = TradingDayRow & {
+  daily_rule_adherence?: { checked: boolean }[] | null
+  trades?: {
+    id: string
+    symbol?: string | null
+    net_pnl?: number | null
+    trade_return_percent?: number | null
+    trade_mistakes?: {
+      mistakes?: {
+        name: string
+      } | null
+    }[] | null
+  }[] | null
+}
+
+type TradeAdherenceWithTrade = {
+  status: string
+  trades: { trading_day_id: string } | { trading_day_id: string }[] | null
+}
+
+type TradeMistakeWithTrade = {
+  id: string
+  trades: { trading_day_id: string } | { trading_day_id: string }[] | null
+}
 
 export async function calculateAndSaveDailyScores(dayId: string) {
   const { supabase, user } = await getSupabaseSession()
@@ -14,7 +41,7 @@ export async function calculateAndSaveDailyScores(dayId: string) {
     .eq("id", dayId)
     .single()
 
-  const day = rawDay as any
+  const day = rawDay as TradingDayWithRelations
 
   if (!day) return
 
@@ -23,14 +50,14 @@ export async function calculateAndSaveDailyScores(dayId: string) {
     .select("status, trades!inner(trading_day_id)")
     .eq("trades.trading_day_id", dayId)
 
-  const tradeAdherences = rawTradeAdherences as any[]
+  const tradeAdherences = rawTradeAdherences as TradeAdherenceWithTrade[]
   
   const { data: rawTradeMistakes } = await supabase
     .from("trade_mistakes")
     .select("id, trades!inner(trading_day_id)")
     .eq("trades.trading_day_id", dayId)
 
-  const tradeMistakes = rawTradeMistakes as any[]
+  const tradeMistakes = rawTradeMistakes as TradeMistakeWithTrade[]
 
   // Planning Score
   let planningScore = 0
@@ -40,7 +67,7 @@ export async function calculateAndSaveDailyScores(dayId: string) {
     if (dailyRules.length === 0) {
       planningScore += 5
     } else {
-      const checkedRules = dailyRules.filter((r: any) => r.checked).length
+      const checkedRules = dailyRules.filter((r) => r.checked).length
       planningScore += (checkedRules / dailyRules.length) * 5
     }
   }
@@ -81,7 +108,7 @@ export async function generateDailyAISummary(dayId: string) {
     .eq("id", dayId)
     .single()
 
-  const day = rawDay as any
+  const day = rawDay as TradingDayWithRelations
 
   if (!day) return
 
@@ -99,7 +126,7 @@ Overall Rating: ${day.overall_day_rating}/10
 Reflection: ${day.reflection}
 Focus for Tomorrow: ${day.tomorrow_focus}
 Trades Count: ${day.trades?.length || 0}
-Net PnL: ${day.trades?.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0) || 0}
+Net PnL: ${day.trades?.reduce((sum, t) => sum + Number(t.net_pnl || 0), 0) || 0}
 
 You MUST respond with ONLY a raw JSON object, no markdown, no code fences, no explanation. The JSON must have exactly these three keys:
 {"summary": "2-3 sentences summarizing the day", "strength": "1 sentence on biggest positive", "weakness": "1 sentence on biggest area for improvement"}`
