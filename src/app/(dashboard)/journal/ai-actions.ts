@@ -2,6 +2,13 @@
 
 import { getSupabaseSession } from "@/lib/supabase/session"
 import type { AppTradingDay } from "@/lib/dashboard-data"
+import { z } from "zod"
+
+const AISummarySchema = z.object({
+  summary: z.string(),
+  strength: z.string(),
+  weakness: z.string()
+})
 
 type TradingDayWithRelations = AppTradingDay & {
   daily_rule_adherence?: { checked: boolean }[] | null
@@ -161,12 +168,14 @@ You MUST respond with ONLY a raw JSON object, no markdown, no code fences, no ex
     // The model may wrap JSON in markdown code fences — strip them
     const cleaned = rawContent.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
     const parsed = JSON.parse(cleaned)
+    const validated = AISummarySchema.parse(parsed)
+    
     const { error: dbError } = await supabase.from("daily_ai_summary").upsert({
       trading_day_id: dayId,
       user_id: user.id,
-      summary: parsed.summary,
-      strength: parsed.strength,
-      weakness: parsed.weakness
+      summary: validated.summary,
+      strength: validated.strength,
+      weakness: validated.weakness
     }, { onConflict: "trading_day_id" })
 
     if (dbError) {
