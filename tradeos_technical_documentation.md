@@ -40,7 +40,7 @@ Individual Indian F&O traders who trade instruments on the NSE (NIFTY, BANKNIFTY
 | Rules | Create entry/exit/risk/psychology rules, check adherence per trade |
 | Analytics | Win rate, profit factor, avg win/loss, strategy breakdown, cost analysis |
 | Monthly Reports | Isolated monthly performance with compounding balance tracking |
-| AI Trade Analyst | Llama 3.3 70B via Groq API — data-driven analysis of trading performance |
+| AI Trade Analyst | GPT-OSS-120B via Groq API — data-driven analysis of trading performance |
 | Settings | Profile, default brokerage/tax, capital management, account reset with CSV export |
 
 ### Tech Stack
@@ -52,7 +52,7 @@ Individual Indian F&O traders who trade instruments on the NSE (NIFTY, BANKNIFTY
 | Styling | Tailwind CSS v4 |
 | Database & Auth | Supabase (PostgreSQL, Row Level Security, Auth) |
 | Charts | Recharts |
-| AI | Groq (Llama 3.3 70B) via client-side `fetch` |
+| AI | Groq (GPT-OSS-120B) via Next.js Server Action |
 | Icons | Lucide React |
 | Date Utilities | date-fns |
 | UI Primitives | shadcn/ui (Base UI) — 21 components |
@@ -73,7 +73,7 @@ Individual Indian F&O traders who trade instruments on the NSE (NIFTY, BANKNIFTY
 │  Auth (email/password) · PostgreSQL · RLS · RPC functions     │
 ├───────────────────────────────────────────────────────────────┤
 │                     Groq API (External)                       │
-│  Llama 3.3 70B — client-side fetch from browser               │
+│  GPT-OSS-120B — fetched securely via Server Actions          │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -1256,7 +1256,7 @@ graph TB
     end
 
     subgraph "External"
-        GROQ["Groq API<br/>Llama 3.3 70B"]
+        GROQ["Groq API<br/>GPT-OSS-120B"]
     end
 
     LOGIN -->|auth| AUTH

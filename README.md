@@ -12,7 +12,7 @@ A dark, focused trading journal and performance tracker built for Indian F&O tra
 - **Daily Journal** — Pre-market planning and post-market review workflow with AI summary
 - **Analytics** — Win rate, profit factor, average win/loss, strategy breakdown, and cost analysis
 - **Monthly Reports** — Isolated monthly performance with compounding balance tracking
-- **AI Trade Analyst** — AI-powered analysis of your trading data using Llama 3.3 via Groq
+- **AI Trade Analyst** — AI-powered analysis of your trading data using GPT-OSS-120B via Groq
 - **Settings** — Starting capital, default brokerage/tax, and account reset
 
 ## Tech Stack
@@ -22,7 +22,7 @@ A dark, focused trading journal and performance tracker built for Indian F&O tra
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Database & Auth**: [Supabase](https://supabase.com/) (PostgreSQL, Row Level Security, Auth)
 - **Charts**: [Recharts](https://recharts.org/)
-- **AI**: [Groq](https://groq.com/) (Llama 3.3 70B)
+- **AI**: [Groq](https://groq.com/) (GPT-OSS-120B)
 - **Icons**: [Lucide React](https://lucide.dev/)
 
 ## Getting Started
