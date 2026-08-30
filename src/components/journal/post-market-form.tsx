@@ -1,7 +1,8 @@
 "use client"
 
-import { useTransition } from "react"
-import { Check, X, Loader2 } from "lucide-react"
+import { useTransition, useState } from "react"
+import { Check, X, Loader2, AlertCircle } from "lucide-react"
+import { toast } from "sonner"
 
 import type { AppTradingDay } from "@/lib/dashboard-data"
 import type { JournalTrade } from "@/components/journal/journal-trades-list"
@@ -58,10 +59,13 @@ export function PostMarketForm({
   netPnl: number
 }) {
   const [isPending, startTransition] = useTransition()
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const action = async (formData: FormData) => {
+    setErrorMsg(null)
     startTransition(async () => {
-      await upsertTradingDay({
+      try {
+        const res = await upsertTradingDay({
         date: day.date,
         formType: 'post_market',
         fields: {
@@ -72,6 +76,19 @@ export function PostMarketForm({
           tomorrow_focus: formData.get("tomorrow_focus") || null,
         }
       })
+      
+      if (res && res.aiError) {
+        toast.error("AI Analysis Failed", { description: res.aiError })
+        // We still successfully saved the journal, so the UI will re-render in completed state
+      } else {
+        toast.success("Journal Saved", { description: "Your post-market journal was saved successfully." })
+      }
+    } catch (err) {
+      toast.error("Failed to save journal", { 
+        description: err instanceof Error ? err.message : "An unexpected error occurred" 
+      })
+      setErrorMsg(err instanceof Error ? err.message : "An unexpected error occurred")
+    }
     })
   }
 

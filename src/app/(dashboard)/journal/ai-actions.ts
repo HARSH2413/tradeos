@@ -95,20 +95,26 @@ export async function calculateAndSaveDailyScores(dayId: string) {
 
 export async function generateDailyAISummary(dayId: string) {
   const { supabase, user } = await getSupabaseSession()
-  if (!user) return
+  if (!user) return { success: false, error: "Not authorized" }
 
   const groqKey = process.env.GROQ_API_KEY
-  if (!groqKey) return // Silent fail if no API key
+  if (!groqKey) {
+    console.warn("AI Analysis skipped: GROQ_API_KEY is not configured on the server.")
+    return { success: false, error: "AI configuration missing. Analysis unavailable." }
+  }
 
-  const { data: rawDay } = await supabase
+  const { data: rawDay, error: fetchError } = await supabase
     .from("trading_days")
     .select("*, trades(symbol, net_pnl, trade_return_percent, trade_mistakes(mistakes(name)))")
     .eq("id", dayId)
     .single()
 
-  const day = rawDay as TradingDayWithRelations
+  if (fetchError || !rawDay) {
+    console.error("Failed to fetch trading day for AI:", fetchError)
+    return { success: false, error: "Could not retrieve trading day data." }
+  }
 
-  if (!day) return
+  const day = rawDay as TradingDayWithRelations
 
   const prompt = `You are a direct, objective trading coach. Analyze this trader's day.
 
@@ -143,7 +149,11 @@ You MUST respond with ONLY a raw JSON object, no markdown, no code fences, no ex
     }),
   })
 
-  if (!res.ok) return
+  if (!res.ok) {
+    const errText = await res.text()
+    console.error("Groq API error in daily summary:", errText)
+    return { success: false, error: "AI service is temporarily unavailable. Please try again later." }
+  }
 
   const groqData = await res.json()
   const rawContent = groqData.choices[0].message.content
@@ -151,15 +161,23 @@ You MUST respond with ONLY a raw JSON object, no markdown, no code fences, no ex
     // The model may wrap JSON in markdown code fences — strip them
     const cleaned = rawContent.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
     const parsed = JSON.parse(cleaned)
-    await supabase.from("daily_ai_summary").upsert({
+    const { error: dbError } = await supabase.from("daily_ai_summary").upsert({
       trading_day_id: dayId,
       user_id: user.id,
       summary: parsed.summary,
       strength: parsed.strength,
       weakness: parsed.weakness
     }, { onConflict: "trading_day_id" })
-  } catch {
-    // Parsing error, fail silently
+
+    if (dbError) {
+      console.error("Failed to save AI summary to database:", dbError)
+      return { success: false, error: "Analysis generated but failed to save to database." }
+    }
+
+    return { success: true }
+  } catch (e) {
+    console.error("Failed to parse AI response as JSON:", e, "Raw Content:", rawContent)
+    return { success: false, error: "AI generated an invalid response format. Please try again." }
   }
 }
 

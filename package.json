@@ -24,6 +24,7 @@
     "react-day-picker": "^9.7.0",
     "react-dom": "^19.1.0",
     "recharts": "^2.15.3",
+    "sonner": "^2.0.8",
     "tailwind-merge": "^3.3.0",
     "tw-animate-css": "^1.3.0"
   },

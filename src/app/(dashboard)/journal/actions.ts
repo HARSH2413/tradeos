@@ -44,18 +44,22 @@ export async function upsertTradingDay(input: UpsertTradingDayInput) {
     throw new Error(error.message)
   }
 
+  let aiError = null;
   // Phase 4: Run Post-Market scoring and AI summary if this is a post_market submission
   if (input.formType === 'post_market') {
     const dayData = data as { id: string }
     await calculateAndSaveDailyScores(dayData.id)
-    await generateDailyAISummary(dayData.id)
+    const result = await generateDailyAISummary(dayData.id)
+    if (result && !result.success) {
+      aiError = result.error
+    }
   }
 
   revalidatePath("/journal")
   revalidatePath("/dashboard")
   revalidatePath("/calendar")
 
-  return data;
+  return { data, aiError };
 }
 
 export async function toggleDailyRuleAdherence(date: string, ruleId: string, checked: boolean) {
