@@ -311,7 +311,7 @@ monthReturn = (monthNetPnl / monthStartingBalance) * 100
 8. Each section is rendered with unique color theming and custom markdown parsing (bullet points, bold text).
 
 **Gating & Rate Limits**:
-- Requires `NEXT_PUBLIC_GROQ_API_KEY` in env.
+- Requires `GROQ_API_KEY` in env.
 - Requires minimum 5 trades to unlock.
 - **Weekly Lock**: Once generated for the current week (resets Sunday at midnight), the "Regenerate Analysis" button is disabled to enforce a disciplined weekly review routine.
 
@@ -673,7 +673,7 @@ All tables have RLS enabled. Every policy uses `auth.uid()` to scope data to the
 
 ```
 POST https://api.groq.com/openai/v1/chat/completions
-Headers: Authorization: Bearer ${NEXT_PUBLIC_GROQ_API_KEY}
+Headers: Authorization: Bearer ${GROQ_API_KEY}
 Body: {
   model: "openai/gpt-oss-120b",
   messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],

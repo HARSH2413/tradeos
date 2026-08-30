@@ -72,7 +72,7 @@ export async function generateDailyAISummary(dayId: string) {
   const { supabase, user } = await getSupabaseSession()
   if (!user) return
 
-  const groqKey = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY
+  const groqKey = process.env.GROQ_API_KEY
   if (!groqKey) return // Silent fail if no API key
 
   const { data: rawDay } = await supabase

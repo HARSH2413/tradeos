@@ -7,7 +7,7 @@ export async function generateAIAnalysis(systemPrompt: string, userPrompt: strin
   const { supabase, user } = await getSupabaseSession()
   if (!user) throw new Error("Not authorized")
 
-  const groqKey = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY
+  const groqKey = process.env.GROQ_API_KEY
   if (!groqKey) {
     throw new Error("Groq API key is not configured on the server")
   }
@@ -62,6 +62,6 @@ export async function generateAIAnalysis(systemPrompt: string, userPrompt: strin
 }
 
 export async function checkGroqKey() {
-  const groqKey = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY
+  const groqKey = process.env.GROQ_API_KEY
   return !!groqKey
 }
