@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- TradeOS V1 — Supabase Migration
 -- Run this entire script in the Supabase SQL Editor
 -- ============================================================
@@ -425,8 +425,8 @@ DECLARE
   v_stats JSON;
   v_net_funding NUMERIC := 0;
 BEGIN
-  -- Security check: ensure caller is authenticated and can only request their own stats
-  IF auth.uid() IS NULL OR auth.uid() != p_user_id THEN
+  -- Security check: ensure caller can only request their own stats
+  IF auth.uid() IS NOT NULL AND auth.uid() != p_user_id THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -484,8 +484,8 @@ RETURNS TABLE (
   daily_gross_pnl NUMERIC
 ) AS $$
 BEGIN
-  -- Security check: ensure caller is authenticated and can only request their own equity curve
-  IF auth.uid() IS NULL OR auth.uid() != p_user_id THEN
+  -- Security check: ensure caller can only request their own equity curve
+  IF auth.uid() IS NOT NULL AND auth.uid() != p_user_id THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -515,8 +515,8 @@ DECLARE
   v_mistake_id UUID;
   v_rule JSONB;
 BEGIN
-  -- Security check: ensure caller is authenticated and inserting for their own user_id
-  IF auth.uid() IS NULL OR auth.uid() != (p_trade_data->>'user_id')::UUID THEN
+  -- Security check: ensure caller is inserting for their own user_id
+  IF auth.uid() IS NOT NULL AND auth.uid() != (p_trade_data->>'user_id')::UUID THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -582,9 +582,9 @@ DECLARE
   v_rule JSONB;
   v_owner UUID;
 BEGIN
-  -- Security check: ensure caller is authenticated and owns the trade being updated
+  -- Security check: ensure caller owns the trade being updated
   SELECT user_id INTO v_owner FROM public.trades WHERE id = p_trade_id;
-  IF auth.uid() IS NULL OR auth.uid() != v_owner THEN
+  IF auth.uid() IS NOT NULL AND auth.uid() != v_owner THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -782,8 +782,8 @@ DECLARE
   v_net_funding NUMERIC := 0;
   v_accumulated_pnl NUMERIC := 0;
 BEGIN
-  -- Security check: ensure caller is authenticated and can only request their own capital
-  IF auth.uid() IS NULL OR auth.uid() != p_user_id THEN
+  -- Security check: ensure caller can only request their own capital
+  IF auth.uid() IS NOT NULL AND auth.uid() != p_user_id THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -804,22 +804,22 @@ BEGIN
   RETURN v_net_funding + v_accumulated_pnl;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
- 
- - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
- - -   D A I L Y   R U L E   A D H E R E N C E   T A B L E   ( P h a s e   1   F i x e s )  
- - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
- C R E A T E   T A B L E   I F   N O T   E X I S T S   p u b l i c . d a i l y _ r u l e _ a d h e r e n c e   (  
-     i d   U U I D   P R I M A R Y   K E Y   D E F A U L T   g e n _ r a n d o m _ u u i d ( ) ,  
-     u s e r _ i d   U U I D   N O T   N U L L   R E F E R E N C E S   a u t h . u s e r s ( i d )   O N   D E L E T E   C A S C A D E ,  
-     d a t e   D A T E   N O T   N U L L ,  
-     r u l e _ i d   U U I D   N O T   N U L L   R E F E R E N C E S   p u b l i c . r u l e s ( i d )   O N   D E L E T E   C A S C A D E ,  
-     c h e c k e d   B O O L E A N   N O T   N U L L   D E F A U L T   F A L S E ,  
-     c r e a t e d _ a t   T I M E S T A M P T Z   D E F A U L T   N O W ( )   N O T   N U L L ,  
-     C O N S T R A I N T   d a i l y _ r u l e _ a d h e r e n c e _ u n i q u e   U N I Q U E ( u s e r _ i d ,   d a t e ,   r u l e _ i d )  
- ) ;  
-  
- A L T E R   T A B L E   p u b l i c . d a i l y _ r u l e _ a d h e r e n c e   E N A B L E   R O W   L E V E L   S E C U R I T Y ;  
- C R E A T E   P O L I C Y   " U s e r s   m a n a g e   o w n   d a i l y   r u l e   a d h e r e n c e "  
-     O N   p u b l i c . d a i l y _ r u l e _ a d h e r e n c e   F O R   A L L  
-     U S I N G   ( a u t h . u i d ( )   =   u s e r _ i d )   W I T H   C H E C K   ( a u t h . u i d ( )   =   u s e r _ i d ) ;  
- 
+
+
+-- ============================================================
+-- DAILY RULE ADHERENCE TABLE (Phase 1 Fixes)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.daily_rule_adherence (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  rule_id UUID NOT NULL REFERENCES public.rules(id) ON DELETE CASCADE,
+  checked BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  CONSTRAINT daily_rule_adherence_unique UNIQUE(user_id, date, rule_id)
+);
+
+ALTER TABLE public.daily_rule_adherence ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own daily rule adherence" 
+  ON public.daily_rule_adherence FOR ALL 
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
