@@ -1,10 +1,10 @@
-# TradeOS
+<div align="center">
+  <img src="docs/tradeos-logo.jpg" alt="TradeOS Logo" width="600" />
 
-### Personal Trading Operating System for Indian F&O Traders
+  ### Personal Trading Operating System for Indian F&O Traders
 
-[Demo](#) | [Live App](#) | [GitHub](https://github.com/HARSH2413/Tradeos)
-
-![TradeOS Dashboard](docs/dashboard.png)
+  [Demo](#) | [Live App](#) | [GitHub](https://github.com/HARSH2413/Tradeos)
+</div>
 
 TradeOS is a full-stack trading journal and performance analysis platform designed to help traders record, review and understand their trading behavior.
 
