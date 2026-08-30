@@ -1,4 +1,4 @@
-import { formatCurrency, formatPercentage } from "@/lib/formatters"
+import { formatPercentage } from "@/lib/formatters"
 import { parseISO, getDay } from "date-fns"
 
 interface DayOfWeekPerformanceProps {

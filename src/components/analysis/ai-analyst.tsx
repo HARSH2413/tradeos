@@ -383,7 +383,6 @@ function ProgressCards({ thisWeek, lastWeek }: { thisWeek: WeeklyStats; lastWeek
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {metrics.map((m) => {
           const isImproved = m.higherIsBetter ? m.diff > 0 : m.diff < 0
-          const isDeclined = m.higherIsBetter ? m.diff < 0 : m.diff > 0
           const isNeutral = m.diff === 0
 
           const Icon = isNeutral ? Minus : isImproved ? TrendingUp : TrendingDown
@@ -464,9 +463,6 @@ export function AiAnalyst({ userId, trades, strategies, rules, mistakes, current
 
   const hasTrades = trades.length >= 5
 
-  const firstDate = trades.length ? trades[trades.length - 1].date : null
-  const lastDate = trades.length ? trades[0].date : null
-
   const weeklyComparison = useMemo(() => computeWeeklyStats(trades), [trades])
   const alreadyGeneratedThisWeek = isGeneratedThisWeek(analysisDate)
 
@@ -478,7 +474,8 @@ export function AiAnalyst({ userId, trades, strategies, rules, mistakes, current
       const limit = timeframe === "all" ? trades.length : parseInt(timeframe, 10)
       const relevantTrades = trades.slice(0, limit)
 
-      let { systemPrompt, userPrompt } = buildPrompts(relevantTrades, strategies, rules, mistakes, currentEquity, timeframe)
+      const { systemPrompt, userPrompt: initialUserPrompt } = buildPrompts(relevantTrades, strategies, rules, mistakes, currentEquity, timeframe)
+      let userPrompt = initialUserPrompt
 
       // Inject week-over-week comparison data into the prompt
       if (weeklyComparison.hasData) {

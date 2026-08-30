@@ -45,7 +45,7 @@ export default async function JournalPage({
 
   let tradesCount = 0
   let netPnl = 0
-  let dayTrades: any[] = []
+  let dayTrades: Record<string, unknown>[] = []
 
   if (activeTradingDay) {
     // Fetch all trades for this date
@@ -68,7 +68,7 @@ export default async function JournalPage({
       trade_rule_adherence: t.trade_rule_adherence || []
     })) ?? []
     tradesCount = dayTrades.length
-    netPnl = (dayTrades as any[]).reduce((sum, t) => sum + Number(t.net_pnl), 0)
+    netPnl = dayTrades.reduce((sum, t) => sum + Number(t.net_pnl), 0)
   }
 
   // Fetch TradeForm requirements

@@ -160,7 +160,7 @@ You MUST respond with ONLY a raw JSON object, no markdown, no code fences, no ex
       strength: parsed.strength,
       weakness: parsed.weakness
     }, { onConflict: "trading_day_id" })
-  } catch (e) {
+  } catch {
     // Parsing error, fail silently
   }
 }

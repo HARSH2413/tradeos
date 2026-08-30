@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 
 export function SignOutButton() {
-  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
-  async function handleSignOut() {
+  const handleSignOut = async () => {
     setIsLoading(true)
     try {
       const supabase = createClient()

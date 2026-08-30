@@ -94,7 +94,7 @@ async function DashboardContent({ userId }: { userId: string }) {
     supabase.from("trading_days").select("pre_market_completed, post_market_completed").eq("user_id", userId).eq("date", format(new Date(), "yyyy-MM-dd")).maybeSingle()
   ])
 
-  const rawStats = statsResult.data as any
+  const rawStats = statsResult.data as unknown
   const statsData = (Array.isArray(rawStats) ? rawStats[0] : rawStats) as DashboardStats | null
   const capitalTxs = (capitalTxResult.data ?? []) as AppCapitalTransaction[]
   
