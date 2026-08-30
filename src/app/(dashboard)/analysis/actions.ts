@@ -1,6 +1,7 @@
 "use server"
 
 import { getSupabaseSession } from "@/lib/supabase/session"
+import { getLatestMarketContext } from "@/lib/market-data"
 
 export async function generateAIAnalysis(systemPrompt: string, userPrompt: string) {
   const { supabase, user } = await getSupabaseSession()
@@ -31,6 +32,9 @@ export async function generateAIAnalysis(systemPrompt: string, userPrompt: strin
     }
   }
 
+  const marketContext = await getLatestMarketContext()
+  const augmentedUserPrompt = `${userPrompt}\n\nLATEST MARKET CONTEXT (For your awareness):\n${marketContext}`
+
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -38,13 +42,13 @@ export async function generateAIAnalysis(systemPrompt: string, userPrompt: strin
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "user", content: augmentedUserPrompt },
       ],
-      temperature: 0.7,
-      max_tokens: 2000,
+      temperature: 0.4,
+      max_tokens: 4096,
     }),
   })
 

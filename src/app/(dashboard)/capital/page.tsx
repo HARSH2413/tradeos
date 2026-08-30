@@ -20,8 +20,8 @@ export default async function CapitalPage() {
   // Financial model terms — see src/lib/financial-model.ts
   const rawStats = stats as unknown
   const statsData = (Array.isArray(rawStats) ? rawStats[0] : rawStats) as Record<string, unknown> | null
-  const equity = statsData?.equity || 0
-  const netContributions = statsData?.net_contributions || 0
+  const equity = (statsData?.equity as number) || 0
+  const netContributions = (statsData?.net_contributions as number) || 0
 
   const { data: capitalTxs } = await supabase
     .from("capital_transactions")

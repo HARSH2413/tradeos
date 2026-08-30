@@ -42,7 +42,7 @@ export default async function AnalysisPage() {
         <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-300">AI Powered</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Trade Analyst</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-          Get an honest, specific, data-driven analysis of your trading. Powered by Llama 3.3 via Groq.
+          Get an honest, specific, data-driven analysis of your trading. Powered by GPT-OSS 120B via Groq.
         </p>
       </div>
 

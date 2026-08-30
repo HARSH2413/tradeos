@@ -85,8 +85,7 @@ export async function generateDailyAISummary(dayId: string) {
 
   if (!day) return
 
-  const prompt = `
-You are a direct, objective trading coach. Analyze this trader's day and provide a structured JSON response.
+  const prompt = `You are a direct, objective trading coach. Analyze this trader's day.
 
 TRADING DAY DATA:
 Date: ${day.date}
@@ -102,13 +101,8 @@ Focus for Tomorrow: ${day.tomorrow_focus}
 Trades Count: ${day.trades?.length || 0}
 Net PnL: ${day.trades?.reduce((sum: number, t: any) => sum + Number(t.net_pnl), 0) || 0}
 
-OUTPUT REQUIRED (Strict JSON):
-{
-  "summary": "2-3 sentences summarizing the day's performance based on their reflection and PnL.",
-  "strength": "1 sentence highlighting their biggest achievement or positive behaviour.",
-  "weakness": "1 sentence highlighting their biggest mistake or area for improvement."
-}
-`
+You MUST respond with ONLY a raw JSON object, no markdown, no code fences, no explanation. The JSON must have exactly these three keys:
+{"summary": "2-3 sentences summarizing the day", "strength": "1 sentence on biggest positive", "weakness": "1 sentence on biggest area for improvement"}`
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -117,19 +111,21 @@ OUTPUT REQUIRED (Strict JSON):
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.5,
-      response_format: { type: "json_object" }
+      temperature: 0.3,
+      max_tokens: 512,
     }),
   })
 
   if (!res.ok) return
 
   const groqData = await res.json()
-  const content = groqData.choices[0].message.content
+  const rawContent = groqData.choices[0].message.content
   try {
-    const parsed = JSON.parse(content)
+    // The model may wrap JSON in markdown code fences — strip them
+    const cleaned = rawContent.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
+    const parsed = JSON.parse(cleaned)
     await supabase.from("daily_ai_summary").upsert({
       trading_day_id: dayId,
       user_id: user.id,

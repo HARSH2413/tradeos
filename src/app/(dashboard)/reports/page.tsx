@@ -35,7 +35,10 @@ export default async function ReportsPage({
 
   const allDates = (allDatesRaw ?? []) as { date: string }[]
   const months = Array.from(new Set(allDates.map((t) => t.date.slice(0, 7))))
-  const month = params.month ?? months[0] ?? new Date().toISOString().slice(0, 7)
+  
+  const now = new Date()
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+  const month = params.month ?? months[0] ?? currentMonth
 
   return (
     <div className="space-y-6">
@@ -88,9 +91,12 @@ async function ReportContent({ userId, month }: { userId: string; month: string 
   const { supabase } = await getSupabaseSession()
   const [year, mon] = month.split("-").map(Number)
   const monthStart = `${month}-01`
-  const monthEnd = new Date(year, mon, 0).toISOString().slice(0, 10)
-  // Day before this month = last day of previous month
-  const prevMonthEnd = new Date(year, mon - 1, 0).toISOString().slice(0, 10)
+  
+  const lastDayDate = new Date(year, mon, 0)
+  const monthEnd = `${lastDayDate.getFullYear()}-${String(lastDayDate.getMonth() + 1).padStart(2, "0")}-${String(lastDayDate.getDate()).padStart(2, "0")}`
+  
+  const prevLastDayDate = new Date(year, mon - 1, 0)
+  const prevMonthEnd = `${prevLastDayDate.getFullYear()}-${String(prevLastDayDate.getMonth() + 1).padStart(2, "0")}-${String(prevLastDayDate.getDate()).padStart(2, "0")}`
 
   const [monthStartingEquity, monthTradesResult, capitalTxsResult, mistakesResult] = await Promise.all([
     getEquityAtDate(supabase, userId, prevMonthEnd),

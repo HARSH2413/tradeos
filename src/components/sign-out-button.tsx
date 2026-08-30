@@ -15,10 +15,13 @@ export function SignOutButton() {
     setIsLoading(true)
     try {
       const supabase = createClient()
-      await supabase.auth.signOut()
-      router.push("/login")
-      router.refresh()
-    } finally {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      
+      // Force a full page reload to clear router cache and ensure middleware runs
+      window.location.href = "/login"
+    } catch (error) {
+      console.error("Error signing out:", error)
       setIsLoading(false)
     }
   }

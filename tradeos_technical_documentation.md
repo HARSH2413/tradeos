@@ -131,7 +131,7 @@ User clicks email link → /auth/callback?code=<code>&next=<path>
 #### Sign Out
 ```
 SignOutButton component → supabase.auth.signOut()
-  → router.push("/login") + router.refresh()
+  → window.location.href = "/login" (forces full reload to clear router cache)
 ```
 
 ### Dashboard Layout Loading
@@ -293,26 +293,27 @@ monthReturn = (monthNetPnl / monthStartingBalance) * 100
 ### 3.9 AI Trade Analyst
 **Files**: [analysis/page.tsx](file:///c:/Games/New%20folder/src/app/(dashboard)/analysis/page.tsx), [ai-analyst.tsx](file:///c:/Games/New%20folder/src/components/analysis/ai-analyst.tsx)
 
-**What it does**: Sends all trade data to Groq's Llama 3.3 70B model for a structured analysis.
+**What it does**: Sends trade data and week-over-week comparisons to Groq (`openai/gpt-oss-120b`) for a highly structured, data-driven analysis of trader performance.
 
 **How it works**:
-1. Page (server component) fetches trades, strategies, rules, mistakes, settings, and last saved analysis
-2. `<AiAnalyst>` (client component) receives all data as props
-3. `buildPrompts()` function computes summary stats (win rate, P&L, profit factor, best/worst trade, most traded symbol, strategy breakdown, etc.) and formats them into a structured text prompt
-4. Sends `POST` to `https://api.groq.com/openai/v1/chat/completions` with:
-   - `model: "llama-3.3-70b-versatile"`
-   - `temperature: 0.7`
-   - `max_tokens: 2000`
-   - System prompt defining the analyst persona
-   - User prompt with all trading data (up to 100 most recent trades)
-5. Response is parsed into 6 sections: "What's working", "Where I'm losing money", "My biggest weakness", "Strategy performance", "Specific suggestions", "This week's focus"
-6. Result is saved to `ai_analysis` table in Supabase (client-side insert)
-7. Each section is rendered with unique color theming
+1. Page (server component) fetches trades, strategies, rules, mistakes, settings, and last saved analysis.
+2. `<AiAnalyst>` (client component) receives all data as props.
+3. `computeWeeklyStats()` partitions trades into "this week" vs "last week" to render visual Progress Cards and injects comparison data into the prompt.
+4. `buildPrompts()` function computes summary stats (win rate, P&L, best/worst trade, strategy breakdown, etc.) and formats them into a structured text prompt.
+5. Sends `POST` to `https://api.groq.com/openai/v1/chat/completions` with:
+   - `model: "openai/gpt-oss-120b"`
+   - `temperature: 0.4` (Low temperature for strictly data-driven, non-hallucinated feedback)
+   - `max_tokens: 4096`
+   - System prompt defining the analyst persona (explicitly forbidding Markdown tables in favor of bullet points for UI compatibility).
+   - User prompt with all trading data, plus Market Context (Nifty/BankNifty 5-day ranges).
+6. Response is parsed into 7 sections: "What's working", "Where I'm losing money", "My biggest weakness", "Strategy performance", "Specific suggestions", "This week's focus", and "Progress since last week".
+7. Result is saved to `ai_analysis` table in Supabase.
+8. Each section is rendered with unique color theming and custom markdown parsing (bullet points, bold text).
 
-**Gating**:
-- Requires `NEXT_PUBLIC_GROQ_API_KEY` in env
-- Requires minimum 5 trades to unlock
-- Previous analysis is persisted and shown on load
+**Gating & Rate Limits**:
+- Requires `NEXT_PUBLIC_GROQ_API_KEY` in env.
+- Requires minimum 5 trades to unlock.
+- **Weekly Lock**: Once generated for the current week (resets Sunday at midnight), the "Regenerate Analysis" button is disabled to enforce a disciplined weekly review routine.
 
 ---
 
@@ -570,7 +571,7 @@ Pre-populated with: FOMO, Overtrading, Revenge Trading, Early Exit, Late Entry, 
 | `summary`, `strength`, `weakness` | TEXT |
 
 > [!NOTE]
-> This table exists in the schema but is **not used by any application code** currently. It appears reserved for future per-day AI summaries.
+> This table is automatically populated by the AI during the Post-Market Review phase. It parses the Groq response (stripping markdown fences) and saves the structured daily AI summary.
 
 #### `public.ai_analysis`
 | Column | Type |
@@ -668,21 +669,30 @@ All tables have RLS enabled. Every policy uses `auth.uid()` to scope data to the
 | `exportAccountData` | Server Action | — | — | SELECT * from trades, strategies, rules, mistakes | JSON data | Throws Error |
 | `resetAccountData` | Server Action | — | — | DELETE all user data, reset settings | void | Throws Error |
 
-### 7.2 Groq API Call
+### 7.2 Groq API Call (AI Analyst)
 
 ```
 POST https://api.groq.com/openai/v1/chat/completions
 Headers: Authorization: Bearer ${NEXT_PUBLIC_GROQ_API_KEY}
 Body: {
-  model: "llama-3.3-70b-versatile",
+  model: "openai/gpt-oss-120b",
   messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
-  temperature: 0.7,
-  max_tokens: 2000
+  temperature: 0.4,
+  max_tokens: 4096
 }
 Response: data.choices[0].message.content (markdown string)
 ```
 
-### 7.3 Auth Callback Route
+### 7.3 Market Data Fetching (Yahoo Finance)
+
+```
+GET https://query1.finance.yahoo.com/v8/finance/chart/{symbol}
+Headers: None
+Options: { cache: 'no-store', signal: AbortSignal.timeout(5000) }
+Used for: Fetching NIFTY and BANKNIFTY 5-day history in `src/lib/market-data.ts` to provide market context to the AI Analyst.
+```
+
+### 7.4 Auth Callback Route
 
 ```
 GET /auth/callback?code=<code>&next=<path>
@@ -932,6 +942,7 @@ Return on capital for a specific individual trade.
    → Clicks "Complete Post-Market Review"
    → Server Action: upsertTradingDay({ ..., formType: "post_market", fields: {...} })
    → DB: UPSERT sets all fields + post_market_completed=true
+   → Background Task: `generateDailyAISummary()` sends day's data to Groq (`openai/gpt-oss-120b`). Returns JSON (regex-parsed to strip markdown) which is inserted into `daily_ai_summary`.
    → Status changes to "completed"
 ```
 
@@ -971,24 +982,26 @@ Return on capital for a specific individual trade.
 2. If <5 trades: shows "Not enough data" message
    If no GROQ key: shows "API key missing" warning
 
-3. User clicks "Analyse My Trading"
+3. User clicks "Regenerate Analysis" (if not locked for the week)
    → runAnalysis():
+   → computeWeeklyStats() calculates this week vs last week stats
    → buildPrompts() computes:
      - Summary stats (win rate, profit factor, avg win/loss, etc.)
      - All trades formatted as text table (up to 100)
-     - Strategy breakdown with win rates
+     - Strategy breakdown with win rates (no markdown tables allowed)
      - Rules organized by category
+     - Week-over-week comparison data
    → fetch("https://api.groq.com/openai/v1/chat/completions", {
-       model: "llama-3.3-70b-versatile",
+       model: "openai/gpt-oss-120b",
        messages: [system, user],
-       temperature: 0.7, max_tokens: 2000
+       temperature: 0.4, max_tokens: 4096
      })
-   → Parse response into 6 markdown sections
+   → Parse response into 7 markdown sections (including "Progress since last week")
    → Save to Supabase: supabase.from("ai_analysis").insert({ user_id, content, trade_count })
-   → Render color-coded section cards
+   → Render Week-over-Week stat cards and color-coded section cards
 
 4. On next visit, last analysis is loaded from DB and displayed immediately
-   → "Regenerate Analysis" button available to re-run
+   → "Regenerate Analysis" button is disabled and reads "Next Analysis Available Sunday" if an analysis was already generated in the current week.
 ```
 
 ### 9.5 Account Reset

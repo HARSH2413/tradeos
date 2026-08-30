@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Sparkles, RefreshCw, AlertTriangle, Brain } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Sparkles, RefreshCw, AlertTriangle, Brain, TrendingUp, TrendingDown, Minus } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { asAppSupabase } from "@/lib/dashboard-data"
 import { generateAIAnalysis, checkGroqKey } from "@/app/(dashboard)/analysis/actions"
@@ -46,12 +46,83 @@ function fmt(n: number) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n)
 }
 
+type WeeklyStats = {
+  trades: number
+  wins: number
+  losses: number
+  winRate: number
+  pnl: number
+  avgWin: number
+  avgLoss: number
+  mistakeCount: number
+}
+
+function computeWeeklyStats(trades: TradeRow[]): { thisWeek: WeeklyStats; lastWeek: WeeklyStats; hasData: boolean } {
+  const today = new Date()
+  const dayOfWeek = today.getDay()
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+
+  const thisWeekStart = new Date(today)
+  thisWeekStart.setDate(today.getDate() - mondayOffset)
+  thisWeekStart.setHours(0, 0, 0, 0)
+
+  const lastWeekStart = new Date(thisWeekStart)
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7)
+
+  const lastWeekEnd = new Date(thisWeekStart)
+  lastWeekEnd.setDate(lastWeekEnd.getDate() - 1)
+  lastWeekEnd.setHours(23, 59, 59, 999)
+
+  const toDate = (d: string) => new Date(d + "T00:00:00")
+
+  const thisWeekTrades = trades.filter((t) => {
+    const d = toDate(t.date)
+    return d >= thisWeekStart && d <= today
+  })
+  const lastWeekTrades = trades.filter((t) => {
+    const d = toDate(t.date)
+    return d >= lastWeekStart && d <= lastWeekEnd
+  })
+
+  function calcStats(arr: TradeRow[]): WeeklyStats {
+    const wins = arr.filter((t) => t.net_pnl > 0)
+    const losses = arr.filter((t) => t.net_pnl < 0)
+    return {
+      trades: arr.length,
+      wins: wins.length,
+      losses: losses.length,
+      winRate: arr.length ? (wins.length / arr.length) * 100 : 0,
+      pnl: arr.reduce((s, t) => s + t.net_pnl, 0),
+      avgWin: wins.length ? wins.reduce((s, t) => s + t.net_pnl, 0) / wins.length : 0,
+      avgLoss: losses.length ? Math.abs(losses.reduce((s, t) => s + t.net_pnl, 0) / losses.length) : 0,
+      mistakeCount: arr.reduce((s, t) => s + (t.trade_mistakes?.length ?? 0), 0),
+    }
+  }
+
+  return {
+    thisWeek: calcStats(thisWeekTrades),
+    lastWeek: calcStats(lastWeekTrades),
+    hasData: thisWeekTrades.length > 0 || lastWeekTrades.length > 0,
+  }
+}
+
+function formatWeeklyComparison(thisWeek: WeeklyStats, lastWeek: WeeklyStats): string {
+  return `WEEK-OVER-WEEK COMPARISON (This Week vs Last Week):
+- Trades: ${thisWeek.trades} vs ${lastWeek.trades}
+- Win Rate: ${thisWeek.winRate.toFixed(1)}% vs ${lastWeek.winRate.toFixed(1)}%
+- P&L: ${fmt(thisWeek.pnl)} vs ${fmt(lastWeek.pnl)}
+- Avg Win: ${fmt(thisWeek.avgWin)} vs ${fmt(lastWeek.avgWin)}
+- Avg Loss: ${fmt(thisWeek.avgLoss)} vs ${fmt(lastWeek.avgLoss)}
+- Mistakes: ${thisWeek.mistakeCount} vs ${lastWeek.mistakeCount}`
+}
+
 function buildPrompts(
   trades: TradeRow[],
   strategies: StrategyRow[],
   rules: RuleRow[],
   mistakes: MistakeRow[],
-  currentEquity: number
+  currentEquity: number,
+  timeframe: string
 ) {
   const mistakeMap = Object.fromEntries(mistakes.map((m) => [m.id, m.name]))
 
@@ -114,7 +185,7 @@ function buildPrompts(
     .map(([cat, titles]) => `  ${cat.replace("_", " ").toUpperCase()}:\n${titles.map((t) => `    - ${t}`).join("\n")}`)
     .join("\n")
 
-  // All trades table (newest first, cap at 100 for token limits)
+  // All trades table (newest first, cap at 100 for token limits even if all selected)
   const tradesToShow = trades.slice(0, 100)
   const tradeLines = tradesToShow
     .map((t) => {
@@ -123,9 +194,10 @@ function buildPrompts(
     })
     .join("\n")
 
-  const systemPrompt = `You are an expert trading coach and performance analyst specialising in Indian F&O markets (NIFTY, BANKNIFTY). Analyse the trader's data and give honest, specific, actionable feedback. Never be vague. Always reference specific numbers from their data. Format your response in clean markdown with these exact sections.`
+  const systemPrompt = `You are an expert trading coach and performance analyst specialising in Indian F&O markets (NIFTY, BANKNIFTY). Analyse the trader's data and give highly detailed, comprehensive, and well-formatted feedback. Use clean markdown formatting (bullet points, bold text for emphasis, and paragraph breaks). DO NOT use Markdown tables under any circumstances; use bulleted lists instead. Never be vague. Always reference specific numbers, percentages, and trade counts from their data. Format your response strictly with these exact sections.`
 
-  const userPrompt = `Here is my complete trading data. Analyse it and give me a full performance review.
+  const timeframeContext = timeframe === "all" ? "my entire trading history" : `my last ${trades.length} trades`
+  const userPrompt = `Here is my complete trading data for ${timeframeContext}. Analyse it and give me a highly detailed, thorough performance review.
 
 SUMMARY STATS:
 - Total Trades Taken: ${trades.length}
@@ -150,25 +222,28 @@ ${stratLines || "  No strategies defined"}
 MY RULES:
 ${rulesLines || "  No rules defined"}
 
-Please analyse and return ONLY these sections:
+Please analyse and return ONLY these sections. Provide a detailed, multi-sentence breakdown for every single section:
 
 ## What's working
-(specific strategies, days, symbols performing well with actual numbers from my data)
+(Provide a highly detailed analysis of specific strategies, days, and symbols performing well. Quote exact PnL and win rate numbers from my data to back up your claims)
 
 ## Where I'm losing money
-(specific patterns in losing trades — symbol, mistake tags, strategy failures with numbers)
+(Break down specific patterns in losing trades in detail — focus on symbols, mistake tags, and strategy failures. Use exact numbers and explain the correlation)
 
 ## My biggest weakness
-(most costly mistake pattern with total rupees lost)
+(Identify the single most costly mistake or pattern. Detail exactly how much it has cost me and why it is happening based on the data)
 
 ## Strategy performance
-(rank each strategy by win rate and net P&L, note which to use more and which to stop)
+(Provide a detailed breakdown of each strategy used. Rank them by win rate and net P&L using bullet points. DO NOT use a table. Clearly state which one to scale up and which one to stop, and why)
 
 ## Specific suggestions
-(5 concrete things to change based on my data, not generic advice — each with a reason from my actual numbers)
+(Provide 5 concrete, highly detailed action items. Do not give generic advice. Each suggestion must include a specific reason derived from my actual numbers)
 
 ## This week's focus
-(one single specific thing to work on based on my most recent 10 trades)`
+(Give me one single, highly specific and detailed focus area for the upcoming week based on my most recent 10 trades)
+
+## Progress since last week
+(Compare this week's stats vs last week's stats provided in the WEEK-OVER-WEEK COMPARISON section. Highlight exactly what improved — e.g. win rate went from X% to Y% — and what got worse. If there is not enough data for one of the weeks, say so. End with one concrete action item to keep improving.)`
 
   return { systemPrompt, userPrompt }
 }
@@ -182,6 +257,7 @@ const SECTION_STYLES: Record<string, { border: string; bg: string; titleColor: s
   "Strategy performance": { border: "border-blue-400/30", bg: "bg-blue-400/5", titleColor: "text-blue-300" },
   "Specific suggestions": { border: "border-purple-400/30", bg: "bg-purple-400/5", titleColor: "text-purple-300" },
   "This week's focus": { border: "border-emerald-400/50", bg: "bg-emerald-500/10", titleColor: "text-emerald-200" },
+  "Progress since last week": { border: "border-cyan-400/30", bg: "bg-cyan-400/5", titleColor: "text-cyan-300" },
 }
 
 function parseAnalysisSections(content: string): { title: string; body: string }[] {
@@ -245,7 +321,131 @@ function renderBoldText(text: string): React.ReactNode {
   )
 }
 
+// ─── Progress Cards ────────────────────────────────────────────────────────────
+
+function ProgressCards({ thisWeek, lastWeek }: { thisWeek: WeeklyStats; lastWeek: WeeklyStats }) {
+  const metrics: {
+    label: string
+    thisVal: string
+    lastVal: string
+    diff: number
+    higherIsBetter: boolean
+  }[] = [
+    {
+      label: "Win Rate",
+      thisVal: `${thisWeek.winRate.toFixed(1)}%`,
+      lastVal: `${lastWeek.winRate.toFixed(1)}%`,
+      diff: thisWeek.winRate - lastWeek.winRate,
+      higherIsBetter: true,
+    },
+    {
+      label: "P&L",
+      thisVal: fmt(thisWeek.pnl),
+      lastVal: fmt(lastWeek.pnl),
+      diff: thisWeek.pnl - lastWeek.pnl,
+      higherIsBetter: true,
+    },
+    {
+      label: "Avg Win",
+      thisVal: fmt(thisWeek.avgWin),
+      lastVal: fmt(lastWeek.avgWin),
+      diff: thisWeek.avgWin - lastWeek.avgWin,
+      higherIsBetter: true,
+    },
+    {
+      label: "Avg Loss",
+      thisVal: fmt(thisWeek.avgLoss),
+      lastVal: fmt(lastWeek.avgLoss),
+      diff: thisWeek.avgLoss - lastWeek.avgLoss,
+      higherIsBetter: false,
+    },
+    {
+      label: "Trades",
+      thisVal: String(thisWeek.trades),
+      lastVal: String(lastWeek.trades),
+      diff: thisWeek.trades - lastWeek.trades,
+      higherIsBetter: true,
+    },
+    {
+      label: "Mistakes",
+      thisVal: String(thisWeek.mistakeCount),
+      lastVal: String(lastWeek.mistakeCount),
+      diff: thisWeek.mistakeCount - lastWeek.mistakeCount,
+      higherIsBetter: false,
+    },
+  ]
+
+  return (
+    <div>
+      <h3 className="mb-3 text-sm font-medium uppercase tracking-widest text-cyan-300">
+        Week-over-Week Progress
+      </h3>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {metrics.map((m) => {
+          const isImproved = m.higherIsBetter ? m.diff > 0 : m.diff < 0
+          const isDeclined = m.higherIsBetter ? m.diff < 0 : m.diff > 0
+          const isNeutral = m.diff === 0
+
+          const Icon = isNeutral ? Minus : isImproved ? TrendingUp : TrendingDown
+          const color = isNeutral
+            ? "text-slate-400"
+            : isImproved
+            ? "text-emerald-400"
+            : "text-red-400"
+          const borderColor = isNeutral
+            ? "border-white/10"
+            : isImproved
+            ? "border-emerald-400/20"
+            : "border-red-400/20"
+          const bgColor = isNeutral
+            ? "bg-white/[0.035]"
+            : isImproved
+            ? "bg-emerald-400/5"
+            : "bg-red-400/5"
+
+          return (
+            <div
+              key={m.label}
+              className={`rounded-xl border p-4 ${borderColor} ${bgColor}`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{m.label}</p>
+                <Icon className={`size-4 ${color}`} />
+              </div>
+              <div className="mt-2 flex items-baseline gap-3">
+                <span className="text-lg font-bold text-white">{m.thisVal}</span>
+                <span className="text-xs text-slate-500">vs {m.lastVal}</span>
+              </div>
+              <p className={`mt-1 text-xs font-medium ${color}`}>
+                {isNeutral
+                  ? "No change"
+                  : isImproved
+                  ? "Improved"
+                  : "Declined"}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
+
+function isGeneratedThisWeek(dateString: string | null) {
+  if (!dateString) return false
+  const date = new Date(dateString)
+  const today = new Date()
+  
+  // Find the most recent Sunday at 00:00:00
+  const recentSunday = new Date(today)
+  const day = recentSunday.getDay() // 0 is Sunday
+  recentSunday.setDate(recentSunday.getDate() - day)
+  recentSunday.setHours(0, 0, 0, 0)
+  
+  return date >= recentSunday
+}
 
 export function AiAnalyst({ userId, trades, strategies, rules, mistakes, currentEquity, lastAnalysis }: Props) {
   const [analysis, setAnalysis] = useState<string | null>(lastAnalysis?.content ?? null)
@@ -254,6 +454,9 @@ export function AiAnalyst({ userId, trades, strategies, rules, mistakes, current
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasKey, setHasKey] = useState(true)
+  const [timeframe, setTimeframe] = useState<string>("100")
+  const [filteredFirstDate, setFilteredFirstDate] = useState<string | null>(null)
+  const [filteredLastDate, setFilteredLastDate] = useState<string | null>(null)
 
   useEffect(() => {
     checkGroqKey().then(setHasKey)
@@ -264,12 +467,24 @@ export function AiAnalyst({ userId, trades, strategies, rules, mistakes, current
   const firstDate = trades.length ? trades[trades.length - 1].date : null
   const lastDate = trades.length ? trades[0].date : null
 
+  const weeklyComparison = useMemo(() => computeWeeklyStats(trades), [trades])
+  const alreadyGeneratedThisWeek = isGeneratedThisWeek(analysisDate)
+
   async function runAnalysis() {
     setLoading(true)
     setError(null)
 
     try {
-      const { systemPrompt, userPrompt } = buildPrompts(trades, strategies, rules, mistakes, currentEquity)
+      const limit = timeframe === "all" ? trades.length : parseInt(timeframe, 10)
+      const relevantTrades = trades.slice(0, limit)
+
+      let { systemPrompt, userPrompt } = buildPrompts(relevantTrades, strategies, rules, mistakes, currentEquity, timeframe)
+
+      // Inject week-over-week comparison data into the prompt
+      if (weeklyComparison.hasData) {
+        const comparisonText = formatWeeklyComparison(weeklyComparison.thisWeek, weeklyComparison.lastWeek)
+        userPrompt = `${userPrompt}\n\n${comparisonText}`
+      }
 
       const content = await generateAIAnalysis(systemPrompt, userPrompt)
 
@@ -278,12 +493,14 @@ export function AiAnalyst({ userId, trades, strategies, rules, mistakes, current
       const { error: saveErr } = await supabase.from("ai_analysis").insert({
         user_id: userId,
         content,
-        trade_count: trades.length,
+        trade_count: relevantTrades.length,
       })
       if (saveErr) console.error("Failed to save analysis:", saveErr)
 
       setAnalysis(content)
-      setTradeCount(trades.length)
+      setTradeCount(relevantTrades.length)
+      setFilteredFirstDate(relevantTrades.length ? relevantTrades[relevantTrades.length - 1].date : null)
+      setFilteredLastDate(relevantTrades.length ? relevantTrades[0].date : null)
       setAnalysisDate(new Date().toISOString())
     } catch (err) {
       setError((err as Error).message || "Something went wrong. Please try again.")
@@ -329,16 +546,27 @@ export function AiAnalyst({ userId, trades, strategies, rules, mistakes, current
 
       {/* Action Button */}
       {hasTrades && (
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <select
+            value={timeframe}
+            onChange={(e) => setTimeframe(e.target.value)}
+            disabled={loading || !hasKey}
+            className="h-12 rounded-xl border border-white/10 bg-slate-950 px-4 text-sm font-medium text-white shadow-lg shadow-black/20 focus:outline-none focus:ring-1 focus:ring-emerald-400/50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="50">Last 50 Trades</option>
+            <option value="100">Last 100 Trades</option>
+            <option value="all">All Time</option>
+          </select>
+
           <button
             onClick={runAnalysis}
             disabled={loading || !hasKey}
-            className="group flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:from-emerald-400 hover:to-teal-400 hover:shadow-emerald-400/30 disabled:cursor-not-allowed disabled:opacity-60"
+            className="group flex h-12 items-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-6 font-semibold text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:from-emerald-400 hover:to-teal-400 hover:shadow-emerald-400/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? (
               <>
                 <RefreshCw className="size-4 animate-spin" />
-                Analysing your {trades.length} trades...
+                Analysing trades...
               </>
             ) : analysis ? (
               <>
@@ -354,7 +582,7 @@ export function AiAnalyst({ userId, trades, strategies, rules, mistakes, current
           </button>
 
           {analysis && analysisDate && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 w-full sm:w-auto">
               Last run: {new Date(analysisDate).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
             </p>
           )}
@@ -378,6 +606,11 @@ export function AiAnalyst({ userId, trades, strategies, rules, mistakes, current
         </div>
       )}
 
+      {/* Progress Cards */}
+      {!loading && sections.length > 0 && weeklyComparison.hasData && (
+        <ProgressCards thisWeek={weeklyComparison.thisWeek} lastWeek={weeklyComparison.lastWeek} />
+      )}
+
       {/* Analysis sections */}
       {!loading && sections.length > 0 && (
         <div className="space-y-4">
@@ -390,22 +623,22 @@ export function AiAnalyst({ userId, trades, strategies, rules, mistakes, current
             <p className="text-sm text-slate-400">
               Analysis based on{" "}
               <span className="font-semibold text-white">{tradeCount} trades</span>
-              {firstDate && lastDate && (
+              {filteredFirstDate && filteredLastDate && (
                 <>
                   {" "}from{" "}
-                  <span className="text-white">{firstDate}</span>
+                  <span className="text-white">{filteredFirstDate}</span>
                   {" "}to{" "}
-                  <span className="text-white">{lastDate}</span>
+                  <span className="text-white">{filteredLastDate}</span>
                 </>
               )}
             </p>
             <button
               onClick={runAnalysis}
-              disabled={loading || !hasKey}
+              disabled={loading || !hasKey || alreadyGeneratedThisWeek}
               className="mt-3 flex items-center gap-2 mx-auto rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-400 transition hover:border-emerald-400/30 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <RefreshCw className="size-3.5" />
-              Regenerate Analysis
+              <RefreshCw className={`size-3.5 ${alreadyGeneratedThisWeek ? "hidden" : ""}`} />
+              {alreadyGeneratedThisWeek ? "Next Analysis Available Sunday" : "Regenerate Analysis"}
             </button>
           </div>
         </div>
