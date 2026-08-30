@@ -17,8 +17,8 @@ interface JournalDayTrade {
   net_pnl: number
   created_at: string
   trade_type: "buy" | "sell"
-  trade_rule_adherence: unknown[]
-  trade_mistakes: unknown[]
+  trade_rule_adherence?: { rule_id: string; status: "followed" | "broken" }[]
+  trade_mistakes?: { mistakes: { name: string } | null }[]
   result: "WIN" | "LOSS" | "BREAK EVEN"
 }
 
