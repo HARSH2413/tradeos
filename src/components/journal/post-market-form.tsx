@@ -1,7 +1,7 @@
 "use client"
 
-import { useTransition, useState } from "react"
-import { Check, X, Loader2, AlertCircle } from "lucide-react"
+import { useTransition } from "react"
+import { Check, X, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import type { AppTradingDay } from "@/lib/dashboard-data"
@@ -59,10 +59,8 @@ export function PostMarketForm({
   netPnl: number
 }) {
   const [isPending, startTransition] = useTransition()
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const action = async (formData: FormData) => {
-    setErrorMsg(null)
     startTransition(async () => {
       try {
         const res = await upsertTradingDay({
@@ -87,7 +85,6 @@ export function PostMarketForm({
       toast.error("Failed to save journal", { 
         description: err instanceof Error ? err.message : "An unexpected error occurred" 
       })
-      setErrorMsg(err instanceof Error ? err.message : "An unexpected error occurred")
     }
     })
   }

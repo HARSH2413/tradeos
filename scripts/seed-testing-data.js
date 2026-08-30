@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { createClient } = require("@supabase/supabase-js");
 const fs = require("fs");
 const path = require("path");
@@ -20,7 +21,7 @@ if (!EMAIL || !PASSWORD) {
   process.exit(1);
 }
 
-const STARTING_CAPITAL = 50000;
+
 
 async function parseCsv(filename) {
   const file = fs.readFileSync(path.join("TradeOS_30_Day_Test_Data", filename), "utf8");
@@ -97,7 +98,8 @@ async function run() {
 
   const capitalTxs = await parseCsv("04_capital_transactions.csv");
   for (const row of capitalTxs) {
-    const { transaction_id, ...rest } = row;
+    const { ...rest } = row;
+    delete rest.transaction_id;
     const { error } = await supabase.from("capital_transactions").insert({ ...rest, user_id: userId });
     if (error) throw error;
   }
@@ -105,7 +107,9 @@ async function run() {
 
   const tradingDays = await parseCsv("05_trading_days.csv");
   for (const row of tradingDays) {
-    const { trading_day_id, symbol, status, biggest_mistake, ...rest } = row;
+    const { trading_day_id, status, ...rest } = row;
+    delete rest.symbol;
+    delete rest.biggest_mistake;
     rest.pre_market_completed = status === "completed" || status === "pre_market";
     rest.post_market_completed = status === "completed";
     rest.plan_followed = rest.plan_followed === "yes" ? "yes" : (rest.plan_followed === "no" ? "no" : null);
@@ -121,7 +125,8 @@ async function run() {
 
   const trades = await parseCsv("06_trades.csv");
   for (const row of trades) {
-    const { trade_id, result, ...rest } = row;
+    const { trade_id, ...rest } = row;
+    delete rest.result;
     if (rest.strategy_id) rest.strategy_id = strategiesMap[rest.strategy_id];
     
     for (const key of Object.keys(rest)) {

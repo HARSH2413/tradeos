@@ -119,7 +119,7 @@ describe('Comprehensive Financial & Edge Case Testing', () => {
     it('Handles string inputs transparently (e.g., from generic DB rows)', () => {
       // @ts-expect-error Testing coercion
       expect(calculateGrossPnl('buy', '100', '110', '10')).toBe(100)
-      // @ts-expect-error
+      // @ts-expect-error test coercion
       expect(calculateNetPnl('100', '20', '5')).toBe(75)
     })
 
@@ -131,9 +131,9 @@ describe('Comprehensive Financial & Edge Case Testing', () => {
         { net_pnl: -50 }
       ]
       // 4 total trades. 1 win. Win rate = 1/4 = 25%
-      // @ts-expect-error
+      // @ts-expect-error test undefined array
       expect(calculateWinRate(messyTrades)).toBe(25)
-      // @ts-expect-error
+      // @ts-expect-error test null array
       expect(calculateProfitFactor(messyTrades)).toBe(2)
     })
   })
