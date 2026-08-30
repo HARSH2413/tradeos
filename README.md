@@ -36,7 +36,7 @@ A dark, focused trading journal and performance tracker built for Indian F&O tra
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/tradeos.git
+git clone https://github.com/HARSH2413/Tradeos.git
 cd tradeos
 npm install
 ```
