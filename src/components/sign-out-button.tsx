@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+
 import { useState } from "react"
 import { Loader2, LogOut } from "lucide-react"
 
