@@ -13,6 +13,8 @@ export async function generateAIAnalysis(systemPrompt: string, userPrompt: strin
   }
 
   // Rate limiting logic: 1 request per minute
+  // TODO(production): The current DB query approach has race conditions if requests fire simultaneously.
+  // For production scale, move this to a distributed Redis/Upstash rate limiter based on user IP or ID.
   const { data } = await supabase
     .from("ai_analysis")
     .select("created_at")
