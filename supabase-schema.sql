@@ -418,6 +418,7 @@ CREATE INDEX IF NOT EXISTS idx_rules_user_id
 -- ============================================================
 
 -- Function to get Dashboard Statistics instantly at the database level
+DROP FUNCTION IF EXISTS get_dashboard_stats(UUID);
 CREATE OR REPLACE FUNCTION get_dashboard_stats(p_user_id UUID)
 RETURNS JSON AS $$
 DECLARE
@@ -475,6 +476,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- Function to get the Equity Curve pre-aggregated per day
+DROP FUNCTION IF EXISTS get_equity_curve(UUID);
 CREATE OR REPLACE FUNCTION get_equity_curve(p_user_id UUID)
 RETURNS TABLE (
   trade_date DATE,
@@ -501,6 +503,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- Function for Atomic Trade Insert (Trade + Mistakes + Rules)
+DROP FUNCTION IF EXISTS insert_trade_atomic(JSONB, UUID[], JSONB);
 CREATE OR REPLACE FUNCTION insert_trade_atomic(
   p_trade_data JSONB,
   p_mistake_ids UUID[],
@@ -566,6 +569,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- Function for Atomic Trade Update (Trade + Mistakes + Rules)
+DROP FUNCTION IF EXISTS update_trade_atomic(UUID, JSONB, UUID[], JSONB);
 CREATE OR REPLACE FUNCTION update_trade_atomic(
   p_trade_id UUID,
   p_trade_data JSONB,
@@ -771,6 +775,7 @@ CREATE POLICY "Users manage own capital transactions"
 -- @deprecated: Use getEquityAtDate() from src/lib/finance/equity.ts instead.
 -- This combined RPC is kept for backwards compatibility.
 -- Conceptually, it returns Equity at Date = Net Contributions at Date + Cumulative Trading P&L at Date.
+DROP FUNCTION IF EXISTS get_capital_at_date(UUID, DATE);
 CREATE OR REPLACE FUNCTION get_capital_at_date(p_user_id UUID, p_date DATE)
 RETURNS NUMERIC AS $$
 DECLARE
