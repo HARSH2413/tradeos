@@ -1,11 +1,9 @@
 "use server"
 
 import { getSupabaseSession } from "@/lib/supabase/session"
-import type { Database } from "@/lib/supabase/types"
+import type { AppTradingDay } from "@/lib/dashboard-data"
 
-type TradingDayRow = Database["public"]["Tables"]["trading_days"]["Row"]
-
-type TradingDayWithRelations = TradingDayRow & {
+type TradingDayWithRelations = AppTradingDay & {
   daily_rule_adherence?: { checked: boolean }[] | null
   trades?: {
     id: string
@@ -67,7 +65,7 @@ export async function calculateAndSaveDailyScores(dayId: string) {
     if (dailyRules.length === 0) {
       planningScore += 5
     } else {
-      const checkedRules = dailyRules.filter((r) => r.checked).length
+      const checkedRules = dailyRules.filter((r: { checked: boolean }) => r.checked).length
       planningScore += (checkedRules / dailyRules.length) * 5
     }
   }
@@ -116,7 +114,7 @@ export async function generateDailyAISummary(dayId: string) {
 
 TRADING DAY DATA:
 Date: ${day.date}
-Symbol: ${day.symbol}
+Symbol: ${day.trades?.[0]?.symbol || "Multiple/None"}
 Market Behaviour: ${day.market_behaviour}
 Plan Followed: ${day.plan_followed}
 Mistake: ${day.biggest_mistake}
@@ -126,7 +124,7 @@ Overall Rating: ${day.overall_day_rating}/10
 Reflection: ${day.reflection}
 Focus for Tomorrow: ${day.tomorrow_focus}
 Trades Count: ${day.trades?.length || 0}
-Net PnL: ${day.trades?.reduce((sum, t) => sum + Number(t.net_pnl || 0), 0) || 0}
+Net PnL: ${day.trades?.reduce((sum: number, t: { net_pnl?: number | null }) => sum + Number(t.net_pnl || 0), 0) || 0}
 
 You MUST respond with ONLY a raw JSON object, no markdown, no code fences, no explanation. The JSON must have exactly these three keys:
 {"summary": "2-3 sentences summarizing the day", "strength": "1 sentence on biggest positive", "weakness": "1 sentence on biggest area for improvement"}`

@@ -11,6 +11,16 @@ import { SubmitButton } from "@/components/submit-button"
 import { DailyJournalPanel } from "@/components/journal/daily-journal-panel"
 import type { AppTradingDay } from "@/lib/dashboard-data"
 
+interface JournalDayTrade {
+  id: string
+  symbol: string
+  net_pnl: number
+  created_at: string
+  trade_type: "buy" | "sell"
+  trade_rule_adherence: unknown[]
+  trade_mistakes: unknown[]
+  result: "WIN" | "LOSS" | "BREAK EVEN"
+}
 
 export const metadata: Metadata = {
   title: "Trading Journal | Dashboard",
@@ -45,7 +55,7 @@ export default async function JournalPage({
 
   let tradesCount = 0
   let netPnl = 0
-  let dayTrades: Record<string, unknown>[] = []
+  let dayTrades: JournalDayTrade[] = []
 
   if (activeTradingDay) {
     // Fetch all trades for this date
@@ -63,12 +73,15 @@ export default async function JournalPage({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     dayTrades = (tradesData as any[])?.map((t: any) => ({
       ...t,
+      symbol: t.symbol || "",
+      net_pnl: Number(t.net_pnl || 0),
+      trade_type: (t.trade_type as "buy" | "sell") || "buy",
       result: Number(t.net_pnl) > 0 ? "WIN" : Number(t.net_pnl) < 0 ? "LOSS" : "BREAK EVEN",
       trade_mistakes: t.trade_mistakes || [],
       trade_rule_adherence: t.trade_rule_adherence || []
     })) ?? []
     tradesCount = dayTrades.length
-    netPnl = dayTrades.reduce((sum, t) => sum + Number(t.net_pnl), 0)
+    netPnl = dayTrades.reduce((sum, t) => sum + t.net_pnl, 0)
   }
 
   // Fetch TradeForm requirements
