@@ -424,6 +424,11 @@ DECLARE
   v_stats JSON;
   v_net_funding NUMERIC := 0;
 BEGIN
+  -- Security check: ensure caller can only request their own stats
+  IF auth.uid() IS NOT NULL AND auth.uid() != p_user_id THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
   -- Get latest net funding
   SELECT balance_after INTO v_net_funding
   FROM public.capital_transactions
@@ -477,6 +482,11 @@ RETURNS TABLE (
   daily_gross_pnl NUMERIC
 ) AS $$
 BEGIN
+  -- Security check: ensure caller can only request their own equity curve
+  IF auth.uid() IS NOT NULL AND auth.uid() != p_user_id THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
   RETURN QUERY
   SELECT 
     date::date AS trade_date,
@@ -502,7 +512,12 @@ DECLARE
   v_mistake_id UUID;
   v_rule JSONB;
 BEGIN
-  -- Insert trade
+  -- Security check: ensure caller is inserting for their own user_id
+  IF auth.uid() IS NOT NULL AND auth.uid() != (p_trade_data->>'user_id')::UUID THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  -- 1. Insert the main trade
   INSERT INTO public.trades (
     user_id, strategy_id, date, symbol, trade_type, entry_price, exit_price,
     quantity, brokerage, taxes, capital_used, capital_used_percent,
@@ -561,8 +576,15 @@ RETURNS VOID AS $$
 DECLARE
   v_mistake_id UUID;
   v_rule JSONB;
+  v_owner UUID;
 BEGIN
-  -- Update trade
+  -- Security check: ensure caller owns the trade being updated
+  SELECT user_id INTO v_owner FROM public.trades WHERE id = p_trade_id;
+  IF auth.uid() IS NOT NULL AND auth.uid() != v_owner THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  -- 1. Update main trade
   UPDATE public.trades
   SET
     strategy_id = NULLIF(p_trade_data->>'strategy_id', '')::UUID,
@@ -755,7 +777,12 @@ DECLARE
   v_net_funding NUMERIC := 0;
   v_accumulated_pnl NUMERIC := 0;
 BEGIN
-  -- Get the most recent balance_after at or before the given date
+  -- Security check: ensure caller can only request their own capital
+  IF auth.uid() IS NOT NULL AND auth.uid() != p_user_id THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  -- 1. Get total deposits/withdrawals up to this date or before the given date
   SELECT balance_after INTO v_net_funding
   FROM public.capital_transactions
   WHERE user_id = p_user_id AND date::DATE <= p_date
