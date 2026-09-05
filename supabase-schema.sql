@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- TradeOS V1 — Supabase Migration
 -- Run this entire script in the Supabase SQL Editor
 -- ============================================================
@@ -116,7 +116,8 @@ INSERT INTO public.mistakes (name) VALUES
   ('Early Exit'),
   ('Late Entry'),
   ('Ignored Stop Loss'),
-  ('Emotional Trading')
+  ('Emotional Trading'),
+  ('No Mistake')
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================

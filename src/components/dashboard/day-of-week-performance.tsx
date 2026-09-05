@@ -21,16 +21,24 @@ export function DayOfWeekPerformance({ trades }: DayOfWeekPerformanceProps) {
     dayStats.set(day.id, { count: 0, wins: 0, pnl: 0 })
   })
 
+  // First, group trades by unique date to get daily P&L
+  const dailyPnlMap = new Map<string, number>()
+  
   trades.forEach(trade => {
-    // getDay() returns 0 for Sunday, 1 for Monday, etc.
-    const date = parseISO(trade.date)
+    const dateStr = trade.date.slice(0, 10)
+    dailyPnlMap.set(dateStr, (dailyPnlMap.get(dateStr) ?? 0) + Number(trade.net_pnl))
+  })
+
+  // Then, aggregate the daily results by day of the week
+  dailyPnlMap.forEach((dayNetPnl, dateStr) => {
+    const date = parseISO(dateStr)
     const dayOfWeek = getDay(date)
     
     if (dayStats.has(dayOfWeek)) {
       const stats = dayStats.get(dayOfWeek)!
       stats.count += 1
-      stats.pnl += Number(trade.net_pnl)
-      if (Number(trade.net_pnl) > 0) {
+      stats.pnl += dayNetPnl
+      if (dayNetPnl > 0) {
         stats.wins += 1
       }
     }

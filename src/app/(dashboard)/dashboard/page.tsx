@@ -109,8 +109,19 @@ async function DashboardContent({ userId }: { userId: string }) {
 
   const todayNetPnl = Number(statsData?.today_net_pnl ?? 0)
 
+  // If yesterday's equity was 0 (e.g. first day of trading), use today's deposits as the starting base.
+  const todayDeposits = capitalTxs
+    .filter(t => t.date === format(new Date(), "yyyy-MM-dd") && t.transaction_type === "deposit")
+    .reduce((sum, t) => sum + Number(t.amount), 0)
+    
+  const effectiveBeginningEquity = yesterdayEndingEquity > 0 ? yesterdayEndingEquity : todayDeposits
+  
   // True daily return % (Adjusted P&L / Beginning Equity)
-  const todayReturn = yesterdayEndingEquity > 0 ? (todayNetPnl / yesterdayEndingEquity) * 100 : 0
+  const todayReturn = effectiveBeginningEquity > 0 ? (todayNetPnl / effectiveBeginningEquity) * 100 : 0
+
+  // Debug logging for the Next.js server console
+  if (statsResult.error) console.error("Dashboard Stats Error:", statsResult.error);
+  if (rawTradesResult.error) console.error("Trades Fetch Error:", rawTradesResult.error);
 
   // Time-Weighted Return (TWR) for cash-flow adjusted overall performance
   const rawTrades = (rawTradesResult.data ?? []) as { date: string; net_pnl: number }[]
